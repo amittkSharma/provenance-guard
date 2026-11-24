@@ -1,0 +1,58 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      chalk:
+        specifier: ^5.3.0
+        version: 5.3.0
+      foo:
+        specifier: github:example/foo
+        version: https://codeload.github.com/example/foo/tar.gz/0123456789abcdef
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
+      my-workspace-pkg:
+        specifier: workspace:*
+        version: link:packages/my-workspace-pkg
+      string-width-cjs:
+        specifier: npm:string-width@^4.2.0
+        version: string-width@4.2.3
+
+packages:
+
+  chalk@4.1.2:
+    resolution: {integrity: sha512-x}
+    engines: {node: '>=10'}
+
+  chalk@5.3.0:
+    resolution: {integrity: sha512-x}
+
+  foo@https://codeload.github.com/example/foo/tar.gz/0123456789abcdef:
+    resolution: {tarball: https://codeload.github.com/example/foo/tar.gz/0123456789abcdef}
+    version: 1.0.0
+
+  lodash@4.17.21:
+    resolution: {integrity: sha512-x}
+
+  string-width@4.2.3:
+    resolution: {integrity: sha512-x}
+
+snapshots:
+
+  chalk@4.1.2: {}
+
+  chalk@5.3.0: {}
+
+  foo@https://codeload.github.com/example/foo/tar.gz/0123456789abcdef:
+    dependencies:
+      chalk: 4.1.2
+
+  lodash@4.17.21: {}
+
+  string-width@4.2.3: {}
