@@ -1,0 +1,168 @@
+{
+  "name": "sigstore",
+  "dist-tags": {
+    "latest": "5.0.1"
+  },
+  "time": {
+    "3.1.0": "2025-02-04T20:35:48.753Z",
+    "4.0.0": "2025-07-29T23:16:47.737Z",
+    "4.1.0": "2025-12-19T16:54:56.285Z",
+    "4.1.1": "2026-05-22T21:24:32.350Z",
+    "5.0.0": "2026-06-01T21:02:52.319Z",
+    "5.0.1": "2026-11-05T00:20:42.798Z"
+  },
+  "versions": {
+    "3.1.0": {
+      "name": "sigstore",
+      "version": "3.1.0",
+      "_npmUser": {
+        "name": "bdehamer",
+        "email": "brian@dehamer.com"
+      },
+      "scripts": {
+        "test": "jest",
+        "build": "tsc --build",
+        "clean": "shx rm -rf dist *.tsbuildinfo"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/sigstore/-/sigstore-3.1.0.tgz",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/sigstore@3.1.0",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      }
+    },
+    "4.0.0": {
+      "name": "sigstore",
+      "version": "4.0.0",
+      "_npmUser": {
+        "name": "GitHub Actions",
+        "email": "npm-oidc-no-reply@github.com",
+        "trustedPublisher": {
+          "id": "github",
+          "oidcConfigId": "oidc:a123e7c7-98a7-4464-911d-09fa7c394dd1"
+        }
+      },
+      "scripts": {
+        "test": "jest",
+        "build": "tsc --build",
+        "clean": "shx rm -rf dist *.tsbuildinfo"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/sigstore/-/sigstore-4.0.0.tgz",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/sigstore@4.0.0",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      }
+    },
+    "4.1.0": {
+      "name": "sigstore",
+      "version": "4.1.0",
+      "_npmUser": {
+        "name": "GitHub Actions",
+        "email": "npm-oidc-no-reply@github.com",
+        "trustedPublisher": {
+          "id": "github",
+          "oidcConfigId": "oidc:a123e7c7-98a7-4464-911d-09fa7c394dd1"
+        }
+      },
+      "scripts": {
+        "test": "jest",
+        "build": "tsc --build",
+        "clean": "shx rm -rf dist *.tsbuildinfo"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/sigstore/-/sigstore-4.1.0.tgz",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/sigstore@4.1.0",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      }
+    },
+    "4.1.1": {
+      "name": "sigstore",
+      "version": "4.1.1",
+      "_npmUser": {
+        "name": "GitHub Actions",
+        "email": "npm-oidc-no-reply@github.com",
+        "trustedPublisher": {
+          "id": "github",
+          "oidcConfigId": "oidc:a123e7c7-98a7-4464-911d-09fa7c394dd1"
+        }
+      },
+      "scripts": {
+        "test": "jest",
+        "build": "tsc --build",
+        "clean": "shx rm -rf dist *.tsbuildinfo"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/sigstore/-/sigstore-4.1.1.tgz",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/sigstore@4.1.1",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      }
+    },
+    "5.0.0": {
+      "name": "sigstore",
+      "version": "5.0.0",
+      "_npmUser": {
+        "name": "GitHub Actions",
+        "email": "npm-oidc-no-reply@github.com",
+        "trustedPublisher": {
+          "id": "github",
+          "oidcConfigId": "oidc:a123e7c7-98a7-4464-911d-09fa7c394dd1"
+        }
+      },
+      "scripts": {
+        "test": "jest",
+        "build": "tsc --build",
+        "clean": "shx rm -rf dist *.tsbuildinfo"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/sigstore/-/sigstore-5.0.0.tgz",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/sigstore@5.0.0",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      }
+    },
+    "5.0.1": {
+      "name": "sigstore",
+      "version": "5.0.1",
+      "_npmUser": {
+        "name": "GitHub Actions",
+        "email": "npm-oidc-no-reply@github.com",
+        "trustedPublisher": {
+          "id": "github",
+          "oidcConfigId": "a123e7c7-98a7-4464-911d-09fa7c394dd1"
+        }
+      },
+      "scripts": {
+        "test": "jest",
+        "build": "tsc --build",
+        "clean": "shx rm -rf dist *.tsbuildinfo"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/sigstore/-/sigstore-5.0.1.tgz",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/sigstore@5.0.1",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      }
+    }
+  }
+}

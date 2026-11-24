@@ -1,0 +1,85 @@
+{
+  "name": "esbuild",
+  "dist-tags": {
+    "latest": "0.28.2"
+  },
+  "time": {
+    "0.28.0": "2026-04-02T20:38:46.463Z",
+    "0.28.1": "2026-06-11T22:47:05.085Z",
+    "0.28.2": "2026-08-08T20:00:55.454Z"
+  },
+  "versions": {
+    "0.28.0": {
+      "name": "esbuild",
+      "version": "0.28.0",
+      "_npmUser": {
+        "name": "GitHub Actions",
+        "email": "npm-oidc-no-reply@github.com",
+        "trustedPublisher": {
+          "id": "github",
+          "oidcConfigId": "oidc:b0cf120c-134e-4e78-a95a-6cbbb5de631f"
+        }
+      },
+      "scripts": {
+        "postinstall": "node install.js"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/esbuild/-/esbuild-0.28.0.tgz",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/esbuild@0.28.0",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      }
+    },
+    "0.28.1": {
+      "name": "esbuild",
+      "version": "0.28.1",
+      "_npmUser": {
+        "name": "GitHub Actions",
+        "email": "npm-oidc-no-reply@github.com",
+        "trustedPublisher": {
+          "id": "github",
+          "oidcConfigId": "oidc:b0cf120c-134e-4e78-a95a-6cbbb5de631f"
+        }
+      },
+      "scripts": {
+        "postinstall": "node install.js"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/esbuild/-/esbuild-0.28.1.tgz",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/esbuild@0.28.1",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      }
+    },
+    "0.28.2": {
+      "name": "esbuild",
+      "version": "0.28.2",
+      "_npmUser": {
+        "name": "GitHub Actions",
+        "email": "npm-oidc-no-reply@github.com",
+        "trustedPublisher": {
+          "id": "github",
+          "oidcConfigId": "oidc:b0cf120c-134e-4e78-a95a-6cbbb5de631f"
+        }
+      },
+      "scripts": {
+        "postinstall": "node install.js"
+      },
+      "dist": {
+        "tarball": "https://registry.npmjs.org/esbuild/-/esbuild-0.28.2.tgz",
+        "attestations": {
+          "url": "https://registry.npmjs.org/-/npm/v1/attestations/esbuild@0.28.2",
+          "provenance": {
+            "predicateType": "https://slsa.dev/provenance/v1"
+          }
+        }
+      }
+    }
+  }
+}
