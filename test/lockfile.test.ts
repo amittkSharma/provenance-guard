@@ -3,9 +3,13 @@ import { test } from 'node:test';
 import { parseLockfile } from '../src/lockfile.ts';
 import { readFixture } from './helpers.ts';
 
-for (const fixture of ['package-lock.json', 'pnpm-lock.yaml', 'yarn-v1.lock', 'yarn-berry.lock']) {
+/** Fixture file → the lockfile name the parser expects. */
+const lockfileName = (fixture: string) =>
+  fixture.startsWith('yarn') ? 'yarn.lock' : fixture.startsWith('pnpm') ? 'pnpm-lock.yaml' : fixture;
+
+for (const fixture of ['package-lock.json', 'pnpm-lock.yaml', 'pnpm-lock-v6.yaml', 'yarn-v1.lock', 'yarn-berry.lock']) {
   test(`parses ${fixture}`, () => {
-    const pkgs = parseLockfile(fixture.startsWith('yarn') ? 'yarn.lock' : fixture, readFixture(fixture));
+    const pkgs = parseLockfile(lockfileName(fixture), readFixture(fixture));
     assert.deepEqual([...(pkgs.get('chalk') ?? [])].sort(), ['4.1.2', '5.3.0']);
     assert.deepEqual([...(pkgs.get('lodash') ?? [])], ['4.17.21']);
     assert.deepEqual([...(pkgs.get('string-width') ?? [])], ['4.2.3']); // npm: alias resolved to the real name
@@ -15,6 +19,17 @@ for (const fixture of ['package-lock.json', 'pnpm-lock.yaml', 'yarn-v1.lock', 'y
     assert.equal(pkgs.has('fixture'), false); // root project skipped
   });
 }
+
+test('pnpm v6: leading slash, peer suffix and scope are handled', () => {
+  const pkgs = parseLockfile('pnpm-lock.yaml', readFixture('pnpm-lock-v6.yaml'));
+  assert.deepEqual([...(pkgs.get('react-dom') ?? [])], ['18.2.0']); // `(react@18.2.0)` suffix stripped
+  assert.deepEqual([...(pkgs.get('react') ?? [])], ['18.2.0']);
+  assert.deepEqual([...(pkgs.get('@scope/pkg') ?? [])], ['2.0.0']);
+  assert.equal(
+    [...pkgs.keys()].some((name) => name.startsWith('/')),
+    false,
+  );
+});
 
 test('accepts a path, not just a basename', () => {
   assert.equal(parseLockfile('some/dir/pnpm-lock.yaml', readFixture('pnpm-lock.yaml')).size, 3);
