@@ -1,0 +1,71 @@
+{
+  "name": "@amittksharma/provenance-guard",
+  "version": "0.1.0",
+  "description": "Fails CI when a dependency update is less trustworthy than the package's own earlier releases: lost provenance, a different source repo, a new publisher, or a new install script. Works with npm, pnpm and Yarn lockfiles.",
+  "keywords": [
+    "provenance",
+    "supply-chain",
+    "security",
+    "npm",
+    "pnpm",
+    "yarn",
+    "lockfile",
+    "slsa",
+    "sigstore",
+    "trusted-publishing",
+    "ci"
+  ],
+  "type": "module",
+  "license": "MIT",
+  "author": "Amitt K Sharma",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amittkSharma/provenance-guard.git"
+  },
+  "homepage": "https://github.com/amittkSharma/provenance-guard#readme",
+  "bugs": {
+    "url": "https://github.com/amittkSharma/provenance-guard/issues"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "provenance-guard": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc --project tsconfig.json",
+    "bump": "commit-and-tag-version --dry-run | grep -q \"^[*-] \" && commit-and-tag-version || echo \"No changes\"",
+    "lint": "biome check",
+    "lint:fix": "biome check --write",
+    "prepare": "husky",
+    "prepublishOnly": "npm run lint && npm run types && npm test && npm run build",
+    "test": "node --test --experimental-strip-types --no-warnings \"test/**/*.test.ts\"",
+    "types": "tsc --noEmit -p tsconfig.test.json"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.9",
+    "@types/node": "^22.20.5",
+    "commit-and-tag-version": "^13.4.0",
+    "husky": "^9.1.7",
+    "typescript": "^7.0.2"
+  }
+}

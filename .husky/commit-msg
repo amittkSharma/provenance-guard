@@ -1,0 +1,5 @@
+# Conventional Commits, so commit-and-tag-version can build the changelog.
+if ! head -1 "$1" | grep -qE '^(feat|fix|perf|revert|docs|style|refactor|test|chore|build|ci)(\([a-z0-9-]+\))?!?: .+'; then
+  echo "commit-msg: use Conventional Commits, e.g. 'feat: add scan command' or 'fix(registry): handle 429'" >&2
+  exit 1
+fi
