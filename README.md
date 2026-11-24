@@ -73,6 +73,8 @@ Put an optional `.provenance-guard.json` in the project root. All keys are optio
 {
   "base": "origin/main", // default ref for `diff`
   "lockfile": "pnpm-lock.yaml", // default: auto-detect
+  "recursive": false, // true: check every lockfile below the root
+  "exclude": ["test/fixtures"], // lockfiles under these paths are ignored
   "registry": "https://registry.npmjs.org",
   "rules": {
     "publisher-changed": "off", // "error" | "warn" | "off"
@@ -90,14 +92,45 @@ Put an optional `.provenance-guard.json` in the project root. All keys are optio
 ```
 
 - **`rules`**: change a rule's severity, or turn it off.
+- **`exclude`**: folders whose lockfiles should be ignored (test fixtures, examples). Matches whole path segments: `apps/web` doesn't exclude `apps/web2`.
 - **`allow`**: accept a specific finding. A `reason` is **required**, so every exception is explained in code review. Add `version` to keep the exception narrow. Without it, every version of that package is allowed for that rule.
 
 CLI flags override the config file:
 
 ```text
-provenance-guard <diff|scan> [--base <ref>] [--lockfile <path>] [--format text|json|markdown]
-                             [--config <path>] [--registry <url>]
+provenance-guard <diff|scan> [--base <ref>] [--lockfile <path> | --recursive]
+                             [--format text|json|markdown] [--config <path>] [--registry <url>]
 ```
+
+## Monorepos (Nx, Turborepo, Lerna, npm/pnpm/Yarn workspaces)
+
+Run it from the repo root. Workspace tools share one lockfile at the root, so one run checks every app and package. Each finding says **which workspaces use the package**, directly or through other packages and workspaces:
+
+```text
+❌ error trust-downgrade      debug@4.4.2 has none; earlier releases had provenance — used by apps/web, packages/ui
+```
+
+In Markdown the same information appears in a **Used by** column, and in JSON as `usedBy`. Single-project repos don't get `usedBy`, because there's only one project it could name.
+
+**Several lockfiles** (old Lerna setups, pnpm with `shared-workspace-lockfile=false`, nested projects):
+
+- By default only the root lockfile is checked. If others exist below it, the report says so: `⚠️ 2 more lockfiles not checked: …`. The ✅ is then withheld.
+- `--recursive` checks every lockfile below the current folder. Findings that are exactly the same in several lockfiles (same rule, package, version and message) appear once, listing every workspace that uses the package. If the details differ, for example a different previous publisher because each lockfile upgraded from a different version, each one gets its own row.
+- Recursive mode can also be set in the config with `"recursive": true` or `false`.
+- Add folders you don't want checked (test fixtures, examples) to `exclude`.
+
+Lockfile discovery walks the whole folder tree and skips only `node_modules` and `.git`. Git-ignored folders, dot folders (for example `.github/actions/*`), submodules and nested repos are all included, so nothing is dropped without a warning. Folders that can't be read are listed in a warning. Put anything you don't want checked in `exclude`.
+
+**Attribution details:**
+
+- A workspace's `devDependencies` count only for that workspace, not for workspaces that depend on it.
+- Yarn Berry lockfiles don't separate dev from production dependencies, so dev dependencies there are attributed to every workspace that depends on the package.
+- A package that no workspace reaches (for example an extraneous entry) gets no `usedBy` rather than a guess.
+- Workspace and local links (`workspace:`, `link:`, `file:`) are followed through the lockfile. A local package outside the workspaces, such as `file:../shared`, is followed but isn't listed as a workspace.
+- **Notes (ℹ️)** report gaps in attribution, never in checking. Every package in the lockfile is still checked, the ✅ and the exit code are unaffected, and only `usedBy` may be incomplete:
+  - `workspace dependency could not be resolved: apps/web → packages/gone`: the link target isn't in the lockfile, so it isn't followed.
+  - `required dependency is missing from the lockfile: debug@4.4.1 → ms`: the lockfile is likely out of sync with `package.json`. Optional and peer dependencies are not reported, because skipping them is normal.
+- Yarn v1 workspace patterns support `*`, `**`, `?`, `{a,b}` and `!negation`.
 
 ## Use it from code
 
@@ -107,6 +140,8 @@ import { check, render } from '@amittksharma/provenance-guard';
 const result = await check({
   cwd: '/path/to/project',
   base: 'origin/main', // omit to check the whole lockfile
+  recursive: true, // every lockfile below cwd
+  exclude: ['test/fixtures'],
   rules: { 'publisher-changed': 'off' },
   allow: [{ name: 'undici-types', rule: 'trust-downgrade', reason: 'known gap' }],
   headers: { authorization: `Bearer ${process.env.REGISTRY_TOKEN}` }, // private mirror
@@ -114,6 +149,7 @@ const result = await check({
 });
 
 console.log(render('markdown', result));
+// result: { checked, findings[{ rule, severity, name, version, message, usedBy? }], unverified, warnings, notes, exitCode }
 process.exitCode = result.exitCode; // 0 or 1
 ```
 
@@ -123,6 +159,8 @@ process.exitCode = result.exitCode; // 0 or 1
 | ------------- | ------------------------------- | --------------------------------------------------------------------------- |
 | `cwd`         | `process.cwd()`                 | Project directory                                                           |
 | `lockfile`    | auto-detect                     | `package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml` or `yarn.lock` |
+| `recursive`   | `false`                         | Check every lockfile below `cwd`. Can't be combined with `lockfile`         |
+| `exclude`     | `[]`                            | Paths whose lockfiles are ignored                                           |
 | `base`        | —                               | Git ref. Set → check changed packages only; unset → check all               |
 | `rules`       | built-in severities             | `{ [rule]: 'error' \| 'warn' \| 'off' }`                                    |
 | `allow`       | `[]`                            | `{ name, rule, version?, reason }[]`                                        |
@@ -131,7 +169,7 @@ process.exitCode = result.exitCode; // 0 or 1
 | `concurrency` | `8`                             | Parallel registry requests                                                  |
 | `fetchJson`   | built-in                        | Replace the HTTP layer (proxy, cache, tests)                                |
 
-Also exported: `createFetchJson`, `RegistryError`, `RULE_IDS`, `LOCKFILES` and all result types.
+Also exported: `createFetchJson`, `RegistryError`, `RULE_IDS`, `LOCKFILES`, `discoverLockfiles`, `workspaceUsage`, `nodeProjectFiles` and all result types.
 
 ## Handling a finding
 

@@ -15,7 +15,8 @@ Commands:
 
 Options:
   --base <ref>        Git ref to compare against (diff only, default: origin/main)
-  --lockfile <path>   Lockfile to read (default: auto-detect)
+  --lockfile <path>   Lockfile to read (default: auto-detect in the current folder)
+  --recursive         Check every lockfile below the current folder (monorepos)
   --format <fmt>      text | json | markdown (default: text)
   --config <path>     Config file (default: .provenance-guard.json if present)
   --registry <url>    Registry URL (default: $npm_config_registry or https://registry.npmjs.org)
@@ -76,7 +77,9 @@ export async function run(argv: string[], deps: RunDeps = {}): Promise<RunResult
     const result = await check({
       ...config,
       cwd,
-      lockfile: args.values.lockfile ?? config.lockfile,
+      // --recursive on the command line overrides a lockfile from the config file.
+      lockfile: args.values.lockfile ?? (args.values.recursive ? undefined : config.lockfile),
+      recursive: args.values.recursive ?? config.recursive,
       base: command === 'diff' ? (args.values.base ?? config.base ?? 'origin/main') : undefined,
       registry: args.values.registry ?? config.registry ?? env.npm_config_registry ?? DEFAULT_REGISTRY,
       fetchJson: deps.fetchJson,
@@ -94,6 +97,7 @@ function parse(argv: string[]) {
     options: {
       base: { type: 'string' },
       lockfile: { type: 'string' },
+      recursive: { type: 'boolean' },
       format: { type: 'string' },
       config: { type: 'string' },
       registry: { type: 'string' },

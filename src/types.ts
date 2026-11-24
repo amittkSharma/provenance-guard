@@ -33,6 +33,8 @@ export interface Finding {
   name: string;
   version: string;
   message: string;
+  /** Workspaces (directories relative to `cwd`) that use the package. Set only when there is more than one. */
+  usedBy?: string[];
 }
 
 /** A package that could not be checked, e.g. a private package missing from the public registry. */
@@ -40,4 +42,6 @@ export interface Unverified {
   name: string;
   version: string;
   reason: string;
+  /** Workspaces that use the package, as in `Finding.usedBy`. */
+  usedBy?: string[];
 }

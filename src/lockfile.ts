@@ -2,13 +2,16 @@ import { basename } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import type { Packages } from './types.ts';
 
-const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+/** Lockfile names provenance-guard reads, in the order they are picked when several sit in one folder. */
+export const LOCKFILES = ['package-lock.json', 'npm-shrinkwrap.json', 'pnpm-lock.yaml', 'yarn.lock'] as const;
+
+export const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 /** Registry tarballs look like `<registry>/<name>/-/<name>-<version>.tgz`; git, file and link deps don't. */
-const isRegistryTarball = (resolved: unknown): boolean =>
+export const isRegistryTarball = (resolved: unknown): boolean =>
   resolved === undefined || (typeof resolved === 'string' && /^https?:\/\/.+\/-\/.+\.tgz/.test(resolved));
 
 /** `chalk@5.3.0` → ['chalk', '5.3.0']; `@scope/x@1.0.0` → ['@scope/x', '1.0.0']. */
-function splitSpec(spec: string): [string, string] | undefined {
+export function splitSpec(spec: string): [string, string] | undefined {
   const at = spec.lastIndexOf('@');
   return at > 0 ? [spec.slice(0, at), spec.slice(at + 1)] : undefined;
 }
@@ -74,31 +77,64 @@ function parseYarnBerry(content: string): Packages {
   return pkgs;
 }
 
-function parseYarnV1(content: string): Packages {
-  const pkgs: Packages = new Map();
-  let name: string | undefined;
-  let version: string | undefined;
-  let resolved: string | undefined;
-  const flush = () => {
-    // Yarn v1 always records `resolved` for registry packages; `link:` entries have none.
-    if (name && version && resolved && isRegistryTarball(resolved)) add(pkgs, name, version);
-    name = version = resolved = undefined;
-  };
+export interface YarnV1Entry {
+  /** Header descriptors, e.g. `lodash@^4.17.20`, `string-width-cjs@npm:string-width@^4.2.0`. */
+  descriptors: string[];
+  /** Real package name (an `npm:` alias resolves to the aliased package). */
+  name?: string;
+  version?: string;
+  resolved?: string;
+  /** name → range. */
+  dependencies: Record<string, string>;
+  optionalDependencies: Record<string, string>;
+}
+
+/** Parses a Yarn v1 lockfile into its entries. */
+export function yarnV1Entries(content: string): YarnV1Entry[] {
+  const entries: YarnV1Entry[] = [];
+  let entry: YarnV1Entry | undefined;
+  let section: 'dependencies' | 'optionalDependencies' | undefined;
   for (const line of content.split('\n')) {
     if (line.startsWith('#') || line.trim() === '') continue;
     if (!line.startsWith(' ')) {
-      flush();
-      // `"a@npm:b@^1", a@^2:` → first descriptor; an npm: alias names the real package after `@npm:`.
-      const first = line.replace(/:$/, '').split(', ')[0].replace(/^"|"$/g, '');
+      const descriptors = line
+        .replace(/:$/, '')
+        .split(', ')
+        .map((d) => d.replace(/^"|"$/g, ''));
+      // An npm: alias names the real package after `@npm:`.
+      const first = descriptors[0];
       const alias = first.indexOf('@npm:');
-      name = splitSpec(alias > 0 ? first.slice(alias + '@npm:'.length) : first)?.[0];
+      entry = {
+        descriptors,
+        name: splitSpec(alias > 0 ? first.slice(alias + '@npm:'.length) : first)?.[0],
+        dependencies: {},
+        optionalDependencies: {},
+      };
+      entries.push(entry);
+      section = undefined;
       continue;
     }
-    const field = /^ {2}(version|resolved) "(.*)"$/.exec(line);
-    if (field?.[1] === 'version') version = field[2];
-    else if (field?.[1] === 'resolved') resolved = field[2];
+    if (!entry) continue;
+    if (/^ {2}\S/.test(line)) {
+      const header = /^ {2}(dependencies|optionalDependencies):$/.exec(line);
+      section = header ? (header[1] as 'dependencies' | 'optionalDependencies') : undefined;
+      const field = /^ {2}(version|resolved) "(.*)"$/.exec(line);
+      if (field?.[1] === 'version') entry.version = field[2];
+      else if (field?.[1] === 'resolved') entry.resolved = field[2];
+      continue;
+    }
+    const dep = section && /^ {4}(?:"([^"]+)"|(\S+)) (?:"([^"]*)"|(\S+))$/.exec(line);
+    if (section && dep) entry[section][dep[1] ?? dep[2]] = dep[3] ?? dep[4];
   }
-  flush();
+  return entries;
+}
+
+function parseYarnV1(content: string): Packages {
+  const pkgs: Packages = new Map();
+  for (const { name, version, resolved } of yarnV1Entries(content)) {
+    // Yarn v1 always records `resolved` for registry packages; `link:` entries have none.
+    if (name && version && resolved && isRegistryTarball(resolved)) add(pkgs, name, version);
+  }
   return pkgs;
 }
 

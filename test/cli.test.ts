@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -31,6 +31,11 @@ const PACKUMENTS: Record<string, unknown> = {
     '1.0.0': { trust: 'provenance', user: 'alice' },
     '1.0.1': { trust: 'none', user: 'mallory' },
   }),
+  'multi-lib': packument('multi-lib', {
+    '1.0.0': { trust: 'provenance', user: 'alice' },
+    '1.0.1': { trust: 'none', user: 'bob' },
+    '1.0.2': { trust: 'none', user: 'mallory' },
+  }),
   'safe-lib': packument('safe-lib', {
     '2.0.0': { trust: 'none', user: 'bob' },
     '2.0.1': { trust: 'none', user: 'bob' },
@@ -53,6 +58,25 @@ const lock = (deps: Record<string, string>) =>
         { version: v, resolved: `${REGISTRY}/${n}/-/${n.split('/').at(-1)}-${v}.tgz` },
       ]),
     ),
+  });
+
+/** npm workspaces lockfile: apps/web → packages/ui (workspace) → `deps`. */
+const monorepoLock = (deps: Record<string, string>) =>
+  JSON.stringify({
+    lockfileVersion: 3,
+    packages: {
+      '': { name: 'mono', workspaces: ['apps/*', 'packages/*'] },
+      'apps/web': { name: 'web', dependencies: { ui: '*' } },
+      'apps/admin': { name: 'admin', dependencies: { 'safe-lib': '*' } },
+      'packages/ui': { name: 'ui', dependencies: Object.fromEntries(Object.keys(deps).map((n) => [n, '*'])) },
+      'node_modules/ui': { resolved: 'packages/ui', link: true },
+      ...Object.fromEntries(
+        Object.entries(deps).map(([n, v]) => [
+          `node_modules/${n}`,
+          { version: v, resolved: `${REGISTRY}/${n}/-/${n}-${v}.tgz` },
+        ]),
+      ),
+    },
   });
 
 /** Temp git repo whose committed lockfile is `base` and working-tree lockfile is `head`. */
@@ -282,4 +306,215 @@ test('text and markdown do not show ✅ when packages are unverified', async () 
     assert.doesNotMatch(out, /✅/, format);
     assert.match(out, /1 of 2 packages could not be verified/, format);
   }
+});
+
+test('monorepo: findings name the workspaces that use the package', async () => {
+  const cwd = repo(undefined, {});
+  writeFileSync(join(cwd, 'package-lock.json'), monorepoLock({ 'demo-lib': '1.0.1', 'safe-lib': '2.0.1' }));
+  const r = await cli(['scan', '--format', 'json'], cwd);
+  const out = JSON.parse(r.stdout);
+  assert.deepEqual(out.findings[0].usedBy, ['apps/web', 'packages/ui']);
+  assert.deepEqual(out.unverified, []);
+});
+
+test('single project: findings have no usedBy', async () => {
+  const cwd = repo({ 'demo-lib': '1.0.0' }, { 'demo-lib': '1.0.1' });
+  const out = JSON.parse((await cli(['diff', '--base', 'HEAD', '--format', 'json'], cwd)).stdout);
+  assert.equal(out.findings[0].usedBy, undefined);
+});
+
+test('text and markdown show "used by"', async () => {
+  const report = {
+    checked: 1,
+    unverified: [],
+    findings: [
+      {
+        rule: 'trust-downgrade' as const,
+        severity: 'error' as const,
+        name: 'a',
+        version: '1.0.1',
+        message: 'a@1.0.1 has none; earlier releases had provenance',
+        usedBy: ['apps/a', 'apps/b', 'apps/c', 'apps/d', 'apps/e', 'apps/f', 'apps/g'],
+      },
+    ],
+  };
+  assert.match(render('text', report), /used by apps\/a, apps\/b, apps\/c, apps\/d, apps\/e \+2 more/);
+  const md = render('markdown', report);
+  assert.match(md, /\| Severity \| Package \| Rule \| Detail \| Used by \|/);
+  assert.match(md, /\| `apps\/a`, `apps\/b`, `apps\/c`, `apps\/d`, `apps\/e` \+2 more \|$/m);
+});
+
+/** Root project with `root` deps plus a nested project `legacy/` with its own lockfile. */
+function nestedRepo(root: Record<string, string>, legacy: Record<string, string>, config?: object): string {
+  const cwd = repo(undefined, root, config);
+  mkdirSync(join(cwd, 'legacy'));
+  writeFileSync(join(cwd, 'legacy/package-lock.json'), lock(legacy));
+  return cwd;
+}
+
+test('nested lockfile without --recursive → warning, no ✅, exit unchanged', async () => {
+  const cwd = nestedRepo({ 'safe-lib': '2.0.1' }, { 'demo-lib': '1.0.1' });
+  const r = await cli(['scan'], cwd);
+  assert.equal(r.exitCode, 0, r.stderr);
+  assert.doesNotMatch(r.stdout, /✅/);
+  assert.match(r.stdout, /1 more lockfile not checked: legacy\/package-lock\.json \(use --recursive or exclude it\)/);
+  const json = JSON.parse((await cli(['scan', '--format', 'json'], cwd)).stdout);
+  assert.equal(json.warnings.length, 1);
+});
+
+test('--recursive checks nested lockfiles and attributes findings to their directory', async () => {
+  const cwd = nestedRepo({ 'safe-lib': '2.0.1' }, { 'demo-lib': '1.0.1' });
+  const r = await cli(['scan', '--recursive', '--format', 'json'], cwd);
+  assert.equal(r.exitCode, 1, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.checked, 2);
+  assert.deepEqual(out.warnings, []);
+  assert.deepEqual(out.findings[0].usedBy, ['legacy']);
+});
+
+test('--recursive diff: a nested lockfile new since base → all its packages checked', async () => {
+  const cwd = nestedRepo({ 'safe-lib': '2.0.1' }, { 'demo-lib': '1.0.1' });
+  execFileSync('git', ['add', '-A'], { cwd });
+  execFileSync('git', ['-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'head'], { cwd });
+  writeFileSync(join(cwd, 'legacy/package-lock.json'), lock({ 'demo-lib': '1.0.1', 'safe-lib': '2.0.0' }));
+  const out = JSON.parse((await cli(['diff', '--base', 'HEAD', '--recursive', '--format', 'json'], cwd)).stdout);
+  assert.equal(out.checked, 1); // only safe-lib@2.0.0 is new
+});
+
+test('the same bad version in two lockfiles is reported once, used by both', async () => {
+  const cwd = nestedRepo({ 'demo-lib': '1.0.1' }, { 'demo-lib': '1.0.1' });
+  const out = JSON.parse((await cli(['scan', '--recursive', '--format', 'json'], cwd)).stdout);
+  assert.equal(out.checked, 1);
+  const downgrades = out.findings.filter((f: { rule: string }) => f.rule === 'trust-downgrade');
+  assert.equal(downgrades.length, 1);
+  assert.deepEqual(downgrades[0].usedBy, ['.', 'legacy']);
+});
+
+test('exclude in config silences the nested-lockfile warning', async () => {
+  const cwd = nestedRepo({ 'safe-lib': '2.0.1' }, { 'demo-lib': '1.0.1' }, { exclude: ['legacy'] });
+  const out = JSON.parse((await cli(['scan', '--format', 'json'], cwd)).stdout);
+  assert.deepEqual(out.warnings, []);
+});
+
+test('--recursive with --lockfile → exit 2', async () => {
+  const cwd = nestedRepo({ 'safe-lib': '2.0.1' }, {});
+  const r = await cli(['scan', '--recursive', '--lockfile', 'package-lock.json'], cwd);
+  assert.equal(r.exitCode, 2);
+  assert.match(r.stderr, /--recursive and --lockfile cannot be combined/);
+});
+
+test('--recursive without any lockfile → exit 2', async () => {
+  const r = await cli(['scan', '--recursive'], mkdtempSync(join(tmpdir(), 'pg-none-')));
+  assert.equal(r.exitCode, 2);
+  assert.match(r.stderr, /no lockfile found/);
+});
+
+test('invalid exclude in config → exit 2', async () => {
+  const cwd = repo({}, {}, { exclude: 'legacy' });
+  const r = await cli(['scan'], cwd);
+  assert.equal(r.exitCode, 2);
+  assert.match(r.stderr, /exclude must be an array of paths/);
+});
+
+test('--recursive checks a root lockfile that git ignores (never fewer lockfiles than the default)', async () => {
+  const cwd = nestedRepo({ 'safe-lib': '2.0.1' }, { 'demo-lib': '1.0.1' });
+  writeFileSync(join(cwd, '.gitignore'), '/package-lock.json\n');
+  const out = JSON.parse((await cli(['scan', '--recursive', '--format', 'json'], cwd)).stdout);
+  assert.equal(out.checked, 2);
+});
+
+test('monorepo: a package no workspace reaches gets no usedBy (not the root)', async () => {
+  const cwd = repo(undefined, {});
+  const content = JSON.parse(monorepoLock({ 'safe-lib': '2.0.1' }));
+  content.packages['node_modules/demo-lib'] = {
+    version: '1.0.1',
+    resolved: `${REGISTRY}/demo-lib/-/demo-lib-1.0.1.tgz`,
+  };
+  writeFileSync(join(cwd, 'package-lock.json'), JSON.stringify(content));
+  const out = JSON.parse((await cli(['scan', '--format', 'json'], cwd)).stdout);
+  const finding = out.findings.find((f: { name: string }) => f.name === 'demo-lib');
+  assert.equal(finding.usedBy, undefined);
+});
+
+test('CLI --recursive wins over a lockfile set in the config', async () => {
+  const cwd = nestedRepo({ 'safe-lib': '2.0.1' }, { 'demo-lib': '1.0.1' }, { lockfile: 'package-lock.json' });
+  const r = await cli(['scan', '--recursive', '--format', 'json'], cwd);
+  assert.equal(r.exitCode, 1, r.stderr);
+  assert.equal(JSON.parse(r.stdout).checked, 2);
+});
+
+test('recursive must be a boolean in config', async () => {
+  const cwd = repo({}, {}, { recursive: 'false' });
+  const r = await cli(['scan'], cwd);
+  assert.equal(r.exitCode, 2);
+  assert.match(r.stderr, /recursive must be true or false/);
+});
+
+test('markdown lists usedBy for unverified packages and neutralises backticks in paths', () => {
+  const md = render('markdown', {
+    checked: 1,
+    findings: [
+      { rule: 'trust-downgrade', severity: 'error', name: 'a', version: '1.0.0', message: 'm', usedBy: ['apps/we`b'] },
+    ],
+    unverified: [{ name: '@corp/x', version: '1.0.0', reason: 'registry 404', usedBy: ['apps/web', 'apps/admin'] }],
+  });
+  assert.match(md, /- `@corp\/x@1\.0\.0`: registry 404 — used by `apps\/web`, `apps\/admin`/);
+  assert.match(md, /`apps\/we'b`/);
+});
+
+test('recursive: true in config turns recursive mode on without the flag', async () => {
+  const cwd = nestedRepo({ 'safe-lib': '2.0.1' }, { 'demo-lib': '1.0.1' }, { recursive: true });
+  const out = JSON.parse((await cli(['scan', '--format', 'json'], cwd)).stdout);
+  assert.equal(out.checked, 2);
+  assert.deepEqual(out.warnings, []);
+});
+
+test('recursive: false in config checks only the root lockfile and warns about the rest', async () => {
+  const cwd = nestedRepo({ 'safe-lib': '2.0.1' }, { 'demo-lib': '1.0.1' }, { recursive: false });
+  const out = JSON.parse((await cli(['scan', '--format', 'json'], cwd)).stdout);
+  assert.equal(out.checked, 1);
+  assert.equal(out.warnings.length, 1);
+});
+
+test('same version from different lockfiles: identical findings merge, differing ones stay separate', async () => {
+  // Root upgrades multi-lib 1.0.0 → 1.0.2, legacy/ upgrades 1.0.1 → 1.0.2.
+  const cwd = repo({ 'multi-lib': '1.0.0' }, { 'multi-lib': '1.0.2' });
+  mkdirSync(join(cwd, 'legacy'));
+  writeFileSync(join(cwd, 'legacy/package-lock.json'), lock({ 'multi-lib': '1.0.1' }));
+  execFileSync('git', ['add', 'legacy'], { cwd });
+  execFileSync('git', ['-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'legacy'], { cwd });
+  writeFileSync(join(cwd, 'legacy/package-lock.json'), lock({ 'multi-lib': '1.0.2' }));
+
+  const out = JSON.parse((await cli(['diff', '--base', 'HEAD', '--recursive', '--format', 'json'], cwd)).stdout);
+  const rows = out.findings.map((f: { rule: string; message: string; usedBy: string[] }) => [
+    f.rule,
+    f.message,
+    f.usedBy,
+  ]);
+  assert.deepEqual(rows, [
+    ['trust-downgrade', 'multi-lib@1.0.2 has none; earlier releases had provenance', ['.', 'legacy']],
+    ['publisher-changed', 'multi-lib@1.0.2 published by mallory; previously alice', ['.']],
+    ['publisher-changed', 'multi-lib@1.0.2 published by mallory; previously bob', ['legacy']],
+  ]);
+  assert.equal(out.checked, 1);
+});
+
+test('unresolved links and required dependencies become notes; ✅ and exit code are unaffected', async () => {
+  const cwd = repo(undefined, {});
+  const content = JSON.parse(monorepoLock({ 'safe-lib': '2.0.1' }));
+  content.packages['node_modules/safe-lib'].dependencies = { ms: '^2.1.3' };
+  content.packages['apps/web'].dependencies.gone = '*';
+  content.packages['node_modules/gone'] = { resolved: '../gone', link: true };
+  writeFileSync(join(cwd, 'package-lock.json'), JSON.stringify(content));
+  const r = await cli(['scan', '--format', 'json'], cwd);
+  assert.equal(r.exitCode, 0, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.deepEqual(out.warnings, []);
+  assert.deepEqual(out.notes, [
+    "package-lock.json: 1 workspace dependency could not be resolved, so 'used by' doesn't follow it: gone → ../gone",
+    "package-lock.json: 1 required dependency is missing from the lockfile, so 'used by' may be incomplete (is the lockfile out of sync?): safe-lib → ms",
+  ]);
+  const text = (await cli(['scan'], cwd)).stdout;
+  assert.match(text, /✅/);
+  assert.match(text, /ℹ️ package-lock\.json: 1 workspace dependency could not be resolved/);
 });
