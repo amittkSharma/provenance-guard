@@ -118,7 +118,11 @@ export async function check(options: CheckOptions = {}): Promise<CheckResult> {
         } else if (!history.versions.some((v) => v.version === change.to)) {
           unverified.push({ name, version: change.to, reason: 'version not in registry' });
         } else {
-          const full = await registry.withSourceRepos(name, history, repoVersionsNeeded(change, history));
+          const needed = repoVersionsNeeded(change, history);
+          const full = await registry.withSourceRepos(name, history, needed);
+          if (full.versions.some((v) => needed.includes(v.version) && !v.sourceRepo)) {
+            unverified.push({ name, version: change.to, reason: 'provenance attestation could not be read' });
+          }
           findings.push(...evaluate(change, full));
         }
       }

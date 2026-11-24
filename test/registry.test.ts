@@ -2,7 +2,14 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { test } from 'node:test';
-import { createFetchJson, createRegistry, type FetchJson, type History, RegistryError } from '../src/registry.ts';
+import {
+  createFetchJson,
+  createLimiter,
+  createRegistry,
+  type FetchJson,
+  type History,
+  RegistryError,
+} from '../src/registry.ts';
 import { readFixture } from './helpers.ts';
 
 const BASE = 'https://registry.npmjs.org';
@@ -26,6 +33,8 @@ const fakeFetch: FetchJson = async (url) => {
     };
   }
   if (path === '@private%2fpkg') return { status: 404 };
+  if (path === 'needs-auth') return { status: 401 };
+  if (path === 'forbidden') return { status: 403 };
   if (path === 'debug-503') return { status: 503 };
   if (path === 'rate-limited') return { status: 429 };
   throw new Error(`unexpected url ${url}`);
@@ -129,4 +138,86 @@ test('createFetchJson limits concurrency and sends headers', async () => {
 
 test('createFetchJson wraps network failures in RegistryError', async () => {
   await assert.rejects(createFetchJson()('http://127.0.0.1:1/unreachable'), RegistryError);
+});
+
+test('401 and 403 → RegistryError (an auth failure must not pass as unverified)', async () => {
+  await assert.rejects(registry.history('needs-auth'), RegistryError);
+  await assert.rejects(registry.history('forbidden'), RegistryError);
+});
+
+test('attestations are fetched from the registry root, not the URL in the packument', async () => {
+  const urls: string[] = [];
+  const mirror = 'https://mirror.example/npm';
+  const reg = createRegistry(async (url) => {
+    urls.push(url);
+    if (url === `${mirror}/sigstore`) {
+      const body = JSON.parse(readFixture('registry/sigstore.json'));
+      body.versions['5.0.1'].dist.attestations.url = 'https://evil.example/steal';
+      return { status: 200, body };
+    }
+    if (url === `${mirror}/-/npm/v1/attestations/sigstore@5.0.1`) {
+      return { status: 200, body: JSON.parse(readFixture('registry/attestations/sigstore@5.0.1.json')) };
+    }
+    return { status: 404 };
+  }, mirror);
+  const h = await reg.withSourceRepos('sigstore', (await reg.history('sigstore')) as History, ['5.0.1']);
+  assert.equal(h.versions.find((v) => v.version === '5.0.1')?.sourceRepo, 'https://github.com/sigstore/sigstore-js');
+  assert.ok(!urls.some((u) => u.includes('evil.example')));
+});
+
+test('createFetchJson never exceeds the concurrency limit when callers arrive as slots free up', async () => {
+  let active = 0;
+  let peak = 0;
+  const server = createServer((_req, res) => {
+    active++;
+    peak = Math.max(peak, active);
+    setTimeout(() => {
+      active--;
+      res.end('{}');
+    }, 10);
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/x`;
+  try {
+    const fetchJson = createFetchJson({ concurrency: 1 });
+    const late: Promise<unknown>[] = [];
+    const first = fetchJson(url).then(() => late.push(fetchJson(url))); // arrives right as the slot frees
+    await Promise.all([first, fetchJson(url)]);
+    await Promise.all(late);
+    assert.equal(peak, 1);
+  } finally {
+    server.close();
+  }
+});
+
+test('createFetchJson rejects a concurrency below 1', () => {
+  assert.throws(() => createFetchJson({ concurrency: 0 }), /concurrency must be at least 1/);
+});
+
+test('createLimiter never exceeds its limit, whatever microtask a new caller arrives on', async () => {
+  for (let offset = 0; offset < 8; offset++) {
+    const limit = createLimiter(1);
+    let active = 0;
+    let peak = 0;
+    let done = 0;
+    const releases: (() => void)[] = [];
+    const task = () =>
+      limit(async () => {
+        active++;
+        peak = Math.max(peak, active);
+        await new Promise<void>((resolve) => releases.push(resolve));
+        active--;
+      }).finally(() => done++);
+    const runs = [task(), task()]; // second one waits
+    await new Promise((r) => setImmediate(r));
+    releases.shift()?.(); // first finishes; the waiter is woken
+    for (let i = 0; i < offset; i++) await Promise.resolve();
+    runs.push(task()); // late caller arrives `offset` microtasks later
+    while (done < runs.length) {
+      await new Promise((r) => setImmediate(r));
+      releases.shift()?.();
+    }
+    await Promise.all(runs);
+    assert.equal(peak, 1, `late caller after ${offset} microtasks`);
+  }
 });

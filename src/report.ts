@@ -10,13 +10,17 @@ export interface Report {
 
 const ICON = { error: '❌', warn: '⚠️' } as const;
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
-const ok = (checked: number) => `✅ ${plural(checked, 'package')} checked, no trust regressions`;
+/** Headline when there are no findings: ✅ only if every package was actually checked. */
+const clean = (checked: number, unverified: number) =>
+  unverified
+    ? `⚠️ no trust regressions found, but ${unverified} of ${plural(checked, 'package')} could not be verified`
+    : `✅ ${plural(checked, 'package')} checked, no trust regressions`;
 const cell = (s: string) => s.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 
 function text({ checked, findings, unverified }: Report): string {
   const lines = findings.length
     ? [`provenance-guard: ${plural(findings.length, 'finding')} in ${plural(checked, 'package')}`]
-    : [ok(checked)];
+    : [clean(checked, unverified.length)];
   for (const f of findings) lines.push(`${ICON[f.severity]} ${f.severity.padEnd(5)} ${f.rule.padEnd(20)} ${f.message}`);
   for (const u of unverified) lines.push(`?  unverified ${u.name}@${u.version} (${u.reason})`);
   return `${lines.join('\n')}\n`;
@@ -33,7 +37,7 @@ function markdown({ checked, findings, unverified }: Report): string {
     }
     out.push('', `${plural(checked, 'package')} checked.`);
   } else {
-    out.push(ok(checked));
+    out.push(clean(checked, unverified.length));
   }
   if (unverified.length) {
     const noun = unverified.length === 1 ? 'package' : 'packages';

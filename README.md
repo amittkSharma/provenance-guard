@@ -31,7 +31,7 @@ provenance-guard: 2 findings in 3 packages
 ⚠️ warn  install-script-added nx@21.5.0 adds an install script
 ```
 
-Exit codes: **0** no errors · **1** at least one error finding · **2** the tool couldn't run (bad config, no lockfile, registry unreachable). It never exits 0 if it couldn't finish the check.
+Exit codes: **0** no errors · **1** at least one error finding · **2** the tool couldn't run (bad config, no lockfile, registry unreachable, registry auth failure). It never exits 0 if it couldn't finish the check; packages it could not verify are listed, and the ✅ only appears when every package was checked.
 
 ## Add it to CI (2 minutes)
 
@@ -153,17 +153,18 @@ provenance-guard compares a version against the package's history. A **release-a
 
 ## Limits
 
-- **Only the public npm data model.** Private registries or mirrors that strip `_npmUser` or attestation data produce no findings for those packages (packages they 404 on show as _unverified_). Point `registry` at `https://registry.npmjs.org` for public packages.
+- **Only the public npm data model.** Mirrors that strip `_npmUser` or attestation data produce no findings for those packages. Packages the registry returns 404 for show as _unverified_, and so do versions whose provenance attestation can't be read. Point `registry` at `https://registry.npmjs.org` for public packages.
 - **It catches what the registry shows.** A compromise that goes through the project's real CI (for example a poisoned workflow in the same repo) keeps provenance and repo unchanged. Code review and the release-age gate cover that case.
 - `scan` downloads one full packument per package. On a big lockfile, expect up to a minute.
 
 ## Troubleshooting
 
-| Symptom                                         | Fix                                                                                                                  |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `unable to get local issuer certificate`        | Corporate TLS proxy. Node ≥ 22.15: `NODE_OPTIONS=--use-system-ca`. Older: `NODE_EXTRA_CA_CERTS=/path/to/corp-ca.pem` |
-| `git show origin/main:package-lock.json failed` | Shallow clone. Use `fetch-depth: 0` or `git fetch origin main`                                                       |
-| A private package shows as _unverified_         | Expected: it isn't on the public registry. Pass `registry` and `headers` if your mirror serves full packuments       |
+| Symptom                                         | Fix                                                                                                                                                                  |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `unable to get local issuer certificate`        | Corporate TLS proxy. Node ≥ 22.15: `NODE_OPTIONS=--use-system-ca`. Older: `NODE_EXTRA_CA_CERTS=/path/to/corp-ca.pem`                                                 |
+| `git show origin/main:package-lock.json failed` | Shallow clone. Use `fetch-depth: 0` or `git fetch origin main`                                                                                                       |
+| A private package shows as _unverified_         | Expected: the registry returned 404. Pass `registry` and `headers` if your mirror serves full packuments                                                             |
+| `HTTP 401` / `HTTP 403` and exit 2              | `npx` passed on your project's private registry (`npm_config_registry`) without a token. Add `--registry https://registry.npmjs.org`, or pass `headers` with a token |
 
 ## Development
 

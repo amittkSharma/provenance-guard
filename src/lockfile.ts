@@ -47,7 +47,12 @@ function parseNpm(content: string): Packages {
 }
 
 function parsePnpm(content: string): Packages {
-  const lock = parseYaml(content) as { packages?: Record<string, unknown> };
+  const lock = parseYaml(content) as { lockfileVersion?: string | number; packages?: Record<string, unknown> };
+  if (Number.parseFloat(String(lock.lockfileVersion)) < 6) {
+    throw new Error(
+      `pnpm-lock.yaml lockfileVersion ${lock.lockfileVersion} is not supported; reinstall with pnpm >= 8`,
+    );
+  }
   const pkgs: Packages = new Map();
   for (const key of Object.keys(lock.packages ?? {})) {
     // v9 keys are `name@version`; older ones start with `/` and may carry a `(peer@x)` suffix.
@@ -63,7 +68,8 @@ function parseYarnBerry(content: string): Packages {
   for (const [key, entry] of Object.entries(lock)) {
     if (key === '__metadata' || !entry?.resolution) continue;
     const at = entry.resolution.lastIndexOf('@npm:');
-    if (at > 0) add(pkgs, entry.resolution.slice(0, at), entry.resolution.slice(at + '@npm:'.length));
+    // `foo@npm:1.0.0::__archiveUrl=…` → version is the part before `::`.
+    if (at > 0) add(pkgs, entry.resolution.slice(0, at), entry.resolution.slice(at + '@npm:'.length).split('::')[0]);
   }
   return pkgs;
 }
@@ -97,7 +103,8 @@ function parseYarnV1(content: string): Packages {
 }
 
 /** Every registry package and version in a lockfile. Git, file, link and workspace entries are skipped. */
-export function parseLockfile(filename: string, content: string): Packages {
+export function parseLockfile(filename: string, raw: string): Packages {
+  const content = raw.replace(/\r\n/g, '\n'); // Windows checkouts (core.autocrlf)
   switch (basename(filename)) {
     case 'package-lock.json':
     case 'npm-shrinkwrap.json':

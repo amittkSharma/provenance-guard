@@ -32,7 +32,7 @@ lockfile ──►│  lockfile.ts │──────────────
    - `trust`: `trusted-publisher` if `_npmUser.trustedPublisher` is set, `provenance` if `dist.attestations.provenance` is set, otherwise `none`
    - `publisher`: `_npmUser.name`
    - `hasInstallScript`: `preinstall` / `install` / `postinstall` / `gypfile`
-   - `sourceRepo`, fetched only for the two versions a rule needs: decoded from the SLSA attestation (`predicate.buildDefinition.externalParameters.workflow.repository`)
+   - `sourceRepo`, fetched only for the two versions a rule needs, from `<registry>/-/npm/v1/attestations/<name>@<version>`: decoded from the SLSA attestation (`predicate.buildDefinition.externalParameters.workflow.repository`). If it can't be read, the version is reported as unverified
 5. **Evaluate:** `evaluate(change, history)` compares the target version with
    - _earlier_: every release published before it (for `trust-downgrade`)
    - _previous_: `change.from`, or the release just before the target (for `install-script-added` and `publisher-changed`)
@@ -42,15 +42,18 @@ lockfile ──►│  lockfile.ts │──────────────
 
 ### Design decisions
 
-| Decision                                                                     | Why                                                                                                                                       |
-| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Compare a package against **its own history**, not a global policy           | A package that never had provenance isn't suspicious. Losing provenance it used to have is. This keeps false positives low on day one.    |
-| `trust-downgrade` compares against **all** earlier releases, not only `from` | If a project is already on a bad version, the next bad version must still be flagged.                                                     |
-| Registry failures → **exit 2**, 404 → **unverified**                         | A security gate must never pass because the network failed. A private package missing from the public registry is expected, not an error. |
-| One runtime dependency (`yaml`)                                              | A supply-chain tool should have a tiny supply chain. HTTP, argument parsing, git and tests use only Node built-ins.                       |
-| No `postinstall` script                                                      | Teams running `--ignore-scripts` get the same behaviour as everyone else.                                                                 |
-| `fetchJson` is injectable                                                    | Tests run offline from recorded registry fixtures. Users can add proxies, caching or auth without forking.                                |
-| Allowlist entries require a `reason`                                         | Exceptions are reviewed in pull requests like any other change.                                                                           |
+| Decision                                                                                          | Why                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Compare a package against **its own history**, not a global policy                                | A package that never had provenance isn't suspicious. Losing provenance it used to have is. This keeps false positives low on day one.               |
+| `trust-downgrade` compares against **all** earlier releases, not only `from`                      | If a project is already on a bad version, the next bad version must still be flagged.                                                                |
+| Registry failures (network, 401/403, 429, 5xx) → **exit 2**, 404 → **unverified**                 | A security gate must never pass because the network or a token failed. A private package missing from the public registry is expected, not an error. |
+| Attestations fetched from `<registry>/-/npm/v1/attestations/…`, never from a URL in the packument | Auth headers only ever go to the configured registry.                                                                                                |
+| Provenance that can't be read → **unverified**                                                    | `source-repo-changed` can't run without it, so the gap is reported instead of skipped.                                                               |
+| ✅ only when nothing is unverified                                                                | A green tick must mean every package was actually checked.                                                                                           |
+| One runtime dependency (`yaml`)                                                                   | A supply-chain tool should have a tiny supply chain. HTTP, argument parsing, git and tests use only Node built-ins.                                  |
+| No `postinstall` script                                                                           | Teams running `--ignore-scripts` get the same behaviour as everyone else.                                                                            |
+| `fetchJson` is injectable                                                                         | Tests run offline from recorded registry fixtures. Users can add proxies, caching or auth without forking.                                           |
+| Allowlist entries require a `reason`                                                              | Exceptions are reviewed in pull requests like any other change.                                                                                      |
 
 ## 2. Usage
 
@@ -61,11 +64,11 @@ provenance-guard diff [--base origin/main] [--lockfile <path>] [--format text|js
 provenance-guard scan [--lockfile <path>] [--format …] [--config …] [--registry …]
 ```
 
-| Exit code | Meaning                                                                                         |
-| --------- | ----------------------------------------------------------------------------------------------- |
-| 0         | No error findings (warnings may exist)                                                          |
-| 1         | At least one error finding                                                                      |
-| 2         | Tool failure: bad arguments or config, no lockfile, git error, registry unreachable / 5xx / 429 |
+| Exit code | Meaning                                                                                                                                   |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 0         | No error findings (warnings may exist)                                                                                                    |
+| 1         | At least one error finding                                                                                                                |
+| 2         | Tool failure: bad arguments or config, no lockfile, unsupported lockfile version, git error, registry unreachable / 401 / 403 / 429 / 5xx |
 
 Option precedence: CLI flag → `.provenance-guard.json` (or `--config`) → `$npm_config_registry` (registry only) → built-in default.
 
@@ -103,7 +106,7 @@ The [README](../README.md#use-it-from-code) lists every option.
 provenance-guard/
 ├── src/
 │   ├── types.ts       Shared types: Trust, RuleId, Change, VersionFacts, Finding, Unverified
-│   ├── lockfile.ts    parseLockfile(): npm v2/v3, pnpm, Yarn v1 and Berry → Packages
+│   ├── lockfile.ts    parseLockfile(): npm v2/v3, pnpm v6+, Yarn v1 and Berry (LF or CRLF) → Packages
 │   ├── diff.ts        diffPackages(), compareVersions(), readAtRef() (git show)
 │   ├── registry.ts    createRegistry() → history() / withSourceRepos(); createFetchJson(); RegistryError
 │   ├── rules.ts       evaluate(), repoVersionsNeeded(): the four rules

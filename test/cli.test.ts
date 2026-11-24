@@ -253,3 +253,33 @@ test('registry comes from npm_config_registry when not configured', async () => 
   });
   assert.deepEqual(urls, ['https://mirror.example/npm/safe-lib']);
 });
+
+test('attestation that cannot be read → unverified, not silently skipped', async () => {
+  const pk = packument('attested-lib', {
+    '1.0.0': { trust: 'provenance', user: 'ci' },
+    '1.0.1': { trust: 'provenance', user: 'ci' },
+  });
+  const cwd = repo({ 'attested-lib': '1.0.0' }, { 'attested-lib': '1.0.1' });
+  const r = await run(['diff', '--base', 'HEAD', '--format', 'json'], {
+    cwd,
+    env: {},
+    fetchJson: async (url) => (url.endsWith('/attested-lib') ? { status: 200, body: pk } : { status: 404 }),
+  });
+  assert.equal(r.exitCode, 0, r.stderr);
+  assert.deepEqual(JSON.parse(r.stdout).unverified, [
+    { name: 'attested-lib', version: '1.0.1', reason: 'provenance attestation could not be read' },
+  ]);
+});
+
+test('text and markdown do not show ✅ when packages are unverified', async () => {
+  const report = {
+    checked: 2,
+    findings: [],
+    unverified: [{ name: '@corp/x', version: '1.0.0', reason: 'registry 404' }],
+  };
+  for (const format of ['text', 'markdown'] as const) {
+    const out = render(format, report);
+    assert.doesNotMatch(out, /✅/, format);
+    assert.match(out, /1 of 2 packages could not be verified/, format);
+  }
+});
