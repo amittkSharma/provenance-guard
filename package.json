@@ -16,6 +16,7 @@
     "ci"
   ],
   "type": "module",
+  "sideEffects": false,
   "license": "MIT",
   "author": "Amitt K Sharma",
   "repository": {
@@ -56,7 +57,8 @@
     "node": ">=20.0.0"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
     "yaml": "^2.9.1"

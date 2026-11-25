@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>provenance-guard report</title>
+<style>
+  :root { color-scheme: light dark; --bg: #fff; --fg: #1f2328; --muted: #656d76; --line: #d0d7de; --card: #f6f8fa;
+    --error: #cf222e; --warn: #9a6700; --ok: #1a7f37; --note: #0969da; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0d1117; --fg: #e6edf3; --muted: #8d96a0; --line: #30363d;
+    --card: #161b22; --error: #ff7b72; --warn: #d29922; --ok: #3fb950; --note: #4493f8; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 2rem; background: var(--bg); color: var(--fg);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1200px; margin: 0 auto; }
+  h1 { margin: 0 0 .25rem; font-size: 1.6rem; } h2 { margin-top: 2rem; font-size: 1.2rem; }
+  .muted, .meta { color: var(--muted); } .meta { margin: 0 0 1rem; }
+  .status { padding: .75rem 1rem; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
+    font-weight: 600; }
+  .status.error { border-color: var(--error); } .status.warn { border-color: var(--warn); }
+  .status.ok { border-color: var(--ok); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .75rem; margin: 1rem 0; }
+  .card { padding: .75rem 1rem; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+  .card strong { display: block; font-size: 1.6rem; }
+  table { width: 100%; border-collapse: collapse; margin: .5rem 0; }
+  th, td { text-align: left; vertical-align: top; padding: .5rem .6rem; border-bottom: 1px solid var(--line); }
+  th { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  code { font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+  .sev { font-weight: 600; white-space: nowrap; } .sev.error { color: var(--error); }
+  .sev.warn { color: var(--warn); } .sev.note { color: var(--note); }
+  ul.messages li { margin: .25rem 0; } dl dt { font-weight: 600; margin-top: .75rem; } dl dd { margin: .25rem 0 0; }
+  footer { margin-top: 2.5rem; color: var(--muted); font-size: .85rem; }
+  ul.evidence { margin: 0; padding-left: 1rem; font-size: .85rem; } ul.evidence li { margin: .1rem 0; }
+  details summary { cursor: pointer; color: var(--note); } code.path { white-space: nowrap; } .context { color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>provenance-guard report</h1>
+  <p class="meta">full scan · lockfiles: <code>package-lock.json</code> · generated 2026-11-25T19:28:22.310Z</p>
+  <p class="status warn" role="status">⚠️ 21 warnings · 115 packages checked</p>
+  <div class="cards">
+    <div class="card"><strong>115</strong>packages checked</div>
+    <div class="card"><strong>0</strong>errors</div>
+    <div class="card"><strong>21</strong>warnings</div>
+    <div class="card"><strong>2</strong>info</div>
+    <div class="card"><strong>0</strong>allowed</div>
+    <div class="card"><strong>1</strong>unverified</div>
+  </div>
+  <h2>Findings</h2>
+      <table><thead><tr><th>Severity</th><th>Package</th><th>Rule</th><th>Detail</th><th>Used by</th><th>Evidence</th><th>Lockfile</th></tr></thead>
+      <tbody><tr>
+          <td class="sev warn">⚠️ warning</td>
+          <td><details><summary>21 packages @7.0.2</summary><ul><li><code>@typescript/typescript-aix-ppc64</code></li><li><code>@typescript/typescript-darwin-arm64</code></li><li><code>@typescript/typescript-darwin-x64</code></li><li><code>@typescript/typescript-freebsd-arm64</code></li><li><code>@typescript/typescript-freebsd-x64</code></li><li><code>@typescript/typescript-linux-arm</code></li><li><code>@typescript/typescript-linux-arm64</code></li><li><code>@typescript/typescript-linux-loong64</code></li><li><code>@typescript/typescript-linux-mips64el</code></li><li><code>@typescript/typescript-linux-ppc64</code></li><li><code>@typescript/typescript-linux-riscv64</code></li><li><code>@typescript/typescript-linux-s390x</code></li><li><code>@typescript/typescript-linux-x64</code></li><li><code>@typescript/typescript-netbsd-arm64</code></li><li><code>@typescript/typescript-netbsd-x64</code></li><li><code>@typescript/typescript-openbsd-arm64</code></li><li><code>@typescript/typescript-openbsd-x64</code></li><li><code>@typescript/typescript-sunos-x64</code></li><li><code>@typescript/typescript-win32-arm64</code></li><li><code>@typescript/typescript-win32-x64</code></li><li><code>typescript</code></li></ul></details></td>
+          <td><code>publisher-changed</code></td>
+          <td>published by microsoft1es; previously typescript-deploys<br><span class="context">One publish event, reported once.</span></td>
+          <td><code>.</code></td>
+          <td><ul class="evidence"><li>published 2026-07-08 (140 days ago) with <code>none</code></li><li>by <code>microsoft1es</code> (listed maintainer)</li><li>previous <code>7.0.1-rc</code> by <code>typescript-deploys</code></li><li>best earlier: <code>none</code>; in 7.x: <code>none</code></li></ul></td>
+          <td><details><summary>21 lockfile entries</summary><code class="path">package-lock.json:806</code><br><code class="path">package-lock.json:823</code><br><code class="path">package-lock.json:840</code><br><code class="path">package-lock.json:857</code><br><code class="path">package-lock.json:874</code><br><code class="path">package-lock.json:891</code><br><code class="path">package-lock.json:908</code><br><code class="path">package-lock.json:925</code><br><code class="path">package-lock.json:942</code><br><code class="path">package-lock.json:959</code><br><code class="path">package-lock.json:976</code><br><code class="path">package-lock.json:993</code><br><code class="path">package-lock.json:1010</code><br><code class="path">package-lock.json:1027</code><br><code class="path">package-lock.json:1044</code><br><code class="path">package-lock.json:1061</code><br><code class="path">package-lock.json:1078</code><br><code class="path">package-lock.json:1095</code><br><code class="path">package-lock.json:1112</code><br><code class="path">package-lock.json:1129</code><br><code class="path">package-lock.json:1387</code></details></td>
+        </tr></tbody></table>
+  <h2>Info</h2>
+      <p class="muted">True but low-risk. Shown for transparency; never fails CI.</p>
+      <details><summary>2 info findings</summary>
+      <table><thead><tr><th>Package</th><th>Rule</th><th>Detail</th><th>Why it is low-risk</th><th>Evidence</th></tr></thead><tbody><tr>
+          <td><code>undici-types@6.21.0</code></td><td><code>trust-downgrade</code></td>
+          <td>undici-types@6.21.0 has none; earlier releases had provenance</td><td>Published 742 days ago by matteo.collina, a listed maintainer who also published earlier 6.x releases with provenance; later 6.x releases (6.23.0) went back to trusted-publisher.</td><td><ul class="evidence"><li>published 2024-11-13 (742 days ago) with <code>none</code></li><li>by <code>matteo.collina</code> (listed maintainer)</li><li>previous <code>6.20.0</code> by <code>matteo.collina</code></li><li>best earlier: <code>provenance</code>; in 6.x: <code>provenance</code></li><li>last attested <code>6.19.2</code></li></ul></td></tr><tr>
+          <td><code>vite@5.4.21</code></td><td><code>trust-downgrade</code></td>
+          <td>vite@5.4.21 has provenance; earlier releases had trusted-publisher</td><td>Newer release lines use trusted-publisher; the 5.x line never had better than provenance, so this release is not weaker than its own line.</td><td><ul class="evidence"><li>published 2025-10-20 (401 days ago) with <code>provenance</code></li><li>by <code>vitebot</code> (listed maintainer)</li><li>previous <code>6.4.1</code> by <code>vitebot</code></li><li>best earlier: <code>trusted-publisher</code>; in 5.x: <code>provenance</code></li><li>last attested <code>6.4.1</code></li><li>repo <code>https://github.com/vitejs/vite</code> (before: <code>https://github.com/vitejs/vite</code>)</li></ul></td></tr></tbody></table></details>
+  <h2>Could not be verified</h2>
+      <table><thead><tr><th>Package</th><th>Reason</th><th>Used by</th><th>Lockfile</th></tr></thead>
+      <tbody><tr>
+          <td><code>@shop/internal-auth@2.3.0</code></td>
+          <td>registry 404</td>
+          <td><code>apps/web</code></td>
+          <td><code class="path">package-lock.json:1938</code></td>
+        </tr></tbody></table>
+  <h2>What the rules mean</h2>
+  <dl><dt><code>trust-downgrade</code> — Trust downgrade</dt><dd>This version was published with weaker trust than earlier releases of the same package (trusted publisher → provenance → none). Attackers with a stolen npm token publish by hand, which drops the provenance a CI build would add.</dd><dd><strong>What to do:</strong> Check the package’s repository and release notes for an announced change of CI. If there is none, pin the previous version and contact the maintainers. If it is explained, add an allowlist entry with the reason.</dd><dt><code>source-repo-changed</code> — Source repository changed</dt><dd>The provenance attestation says this version was built from a different source repository than the previous attested release. A fork or a hijacked CI can produce valid provenance from the wrong repository.</dd><dd><strong>What to do:</strong> Confirm the project officially moved repositories. If not, pin the previous version and report it to the maintainers and to npm.</dd><dt><code>install-script-added</code> — Install script added</dt><dd>This version adds a preinstall, install or postinstall script (or a native build) that the previous release did not have. Worms such as Shai-Hulud spread through newly added install scripts.</dd><dd><strong>What to do:</strong> Read the script in the published package. Install with --ignore-scripts until it is reviewed, and allowlist it once you trust it.</dd><dt><code>publisher-changed</code> — Publisher changed</dt><dd>This version was published without a trusted publisher by a different npm account than the previous release. It can be a new maintainer, or a hijacked account.</dd><dd><strong>What to do:</strong> Check that the account is a listed maintainer and that the change was announced. Turn the rule off if your dependencies change publishers often.</dd><dt><code>unverified</code> — Not verified</dt><dd>The registry did not return this package or version (for example a private package missing from the public registry), or its provenance attestation could not be read.</dd><dd><strong>What to do:</strong> Point `registry` and `headers` at a registry that serves this package, or verify it manually.</dd></dl>
+  <footer>provenance-guard 0.1.0 · <a href="https://github.com/amittkSharma/provenance-guard">https://github.com/amittkSharma/provenance-guard</a></footer>
+</main>
+</body>
+</html>

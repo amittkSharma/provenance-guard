@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parseLockfile } from '../src/lockfile.ts';
+import { findLine, parseLockfile } from '../src/lockfile.ts';
 import { readFixture } from './helpers.ts';
 
 /** Fixture file → the lockfile name the parser expects. */
@@ -82,4 +82,26 @@ test('yarn berry archiveUrl resolutions keep the package', () => {
   const lock =
     '__metadata:\n  version: 8\n\n"foo@npm:1.0.0::__archiveUrl=https%3A%2F%2Fexample.com%2Ffoo.tgz":\n  version: 1.0.0\n  resolution: "foo@npm:1.0.0::__archiveUrl=https%3A%2F%2Fexample.com%2Ffoo.tgz"\n';
   assert.deepEqual([...(parseLockfile('yarn.lock', lock).get('foo') ?? [])], ['1.0.0']);
+});
+
+test('findLine points at the package entry in every lockfile format', () => {
+  const cases: [string, string, string, string][] = [
+    ['package-lock.json', 'chalk', '4.1.2', '    "node_modules/foo/node_modules/chalk": {'],
+    ['package-lock.json', 'string-width', '4.2.3', '    "node_modules/string-width-cjs": {'],
+    ['pnpm-lock.yaml', 'chalk', '4.1.2', '  chalk@4.1.2:'],
+    ['pnpm-lock-v6.yaml', 'react-dom', '18.2.0', '  /react-dom@18.2.0(react@18.2.0):'],
+    ['pnpm-lock-v6.yaml', '@scope/pkg', '2.0.0', '  /@scope/pkg@2.0.0:'],
+    ['yarn-v1.lock', 'chalk', '5.3.0', 'chalk@^5.3.0:'],
+    ['yarn-v1.lock', 'lodash', '4.17.21', 'lodash@^4.17.20, lodash@^4.17.21:'],
+    ['yarn-berry.lock', 'chalk', '4.1.2', '"chalk@npm:^4.1.2":'],
+  ];
+  for (const [fixture, name, version, expected] of cases) {
+    const content = readFixture(fixture);
+    const line = findLine(content, name, version);
+    assert.equal(content.split('\n')[line - 1], expected, `${fixture} ${name}@${version}`);
+  }
+});
+
+test('findLine falls back to line 1 when the package is not found', () => {
+  assert.equal(findLine(readFixture('package-lock.json'), 'nope', '1.0.0'), 1);
 });

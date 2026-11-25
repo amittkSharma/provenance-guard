@@ -1,17 +1,17 @@
 # provenance-guard
 
-**Fail CI when a dependency update is less trustworthy than the package's own earlier releases.**
+**Catch compromised npm releases before they reach your build.**
 
-Most npm supply-chain attacks in 2025 (Nx "s1ngularity", chalk/debug, the Shai-Hulud worm) followed the same pattern: an attacker stole a maintainer's token and published a new patch version by hand. Vulnerability scanners miss these on day 0 because no advisory exists yet. Each attack still left a visible trace in the registry, and provenance-guard checks for those traces:
+Most npm supply-chain attacks follow one pattern: an attacker steals a maintainer's token and publishes a new patch version by hand. Vulnerability scanners can't see it on day 0, because no advisory exists yet. But the registry shows what changed. The release lost the provenance its predecessors had, was built from a different repository, suddenly runs an install script, or comes from a different account.
 
-| Rule                   | Fails when                                                                                                 | Severity |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------- | -------- |
-| `trust-downgrade`      | The version has weaker publishing trust than earlier releases (trusted publisher → provenance → none)      | ❌ error |
-| `source-repo-changed`  | Provenance says it was built from a different GitHub repo than before                                      | ❌ error |
-| `install-script-added` | It adds `preinstall` / `install` / `postinstall` (or a native build) that the previous release didn't have | ⚠️ warn  |
-| `publisher-changed`    | It was published by hand by a different npm account than the previous release                              | ⚠️ warn  |
+provenance-guard compares every dependency update with **the package's own history** and fails CI when trust goes down.
 
-It works with **npm, pnpm and Yarn** (v1 and Berry) lockfiles, reads only public registry data, and has a single runtime dependency (`yaml`).
+- Works with **npm, pnpm and Yarn** (v1 and Berry), including **monorepos** (Nx, Turborepo, Lerna, workspaces)
+- Reports as **text, JSON, Markdown, SARIF, JUnit and HTML**: GitHub code scanning, the Azure DevOps Tests and Scans tabs, PR summaries
+- **Low noise:** related findings are grouped, low-risk ones are explained instead of failing the build, and nothing is hidden
+- **Small and safe to run:** one runtime dependency, no install scripts, reads only public registry data
+
+![Terminal output](docs/images/terminal.png)
 
 ---
 
@@ -21,19 +21,28 @@ It works with **npm, pnpm and Yarn** (v1 and Berry) lockfiles, reads only public
 # In a pull request: check only what changed since main
 npx @amittksharma/provenance-guard diff --base origin/main
 
-# Audit everything already in the lockfile
+# Audit everything in the lockfile
 npx @amittksharma/provenance-guard scan
 ```
 
-```text
-provenance-guard: 2 findings in 3 packages
-❌ error trust-downgrade      nx@21.5.0 has none; earlier releases had provenance
-⚠️ warn  install-script-added nx@21.5.0 adds an install script
-```
+| Exit code | Meaning                                                                                                         |
+| --------- | --------------------------------------------------------------------------------------------------------------- |
+| `0`       | No errors                                                                                                       |
+| `1`       | At least one error: don't merge until it's reviewed                                                             |
+| `2`       | The check couldn't run (no lockfile, bad config, registry unreachable). It never passes when it couldn't finish |
 
-Exit codes: **0** no errors · **1** at least one error finding · **2** the tool couldn't run (bad config, no lockfile, registry unreachable, registry auth failure). It never exits 0 if it couldn't finish the check; packages it could not verify are listed, and the ✅ only appears when every package was checked.
+## What it checks
 
-## Add it to CI (2 minutes)
+| Rule                   | Fires when                                                                                         | Severity   |
+| ---------------------- | -------------------------------------------------------------------------------------------------- | ---------- |
+| `trust-downgrade`      | A release has weaker publishing trust than earlier releases: trusted publisher → provenance → none | ❌ error   |
+| `source-repo-changed`  | Provenance says it was built from a different repository than before                               | ❌ error   |
+| `install-script-added` | A release adds a `preinstall` / `install` / `postinstall` script the previous one didn't have      | ⚠️ warning |
+| `publisher-changed`    | A release was published by hand from a different npm account                                       | ⚠️ warning |
+
+Findings that are true but low-risk, such as an old maintenance release or a maintainer's own historical gap, are reported as **ℹ️ info** with the reason, and never fail CI. Findings from one publish event (for example a framework and its 20 platform packages) show as **one row**. Details: [How it works](docs/how-it-works.md).
+
+## Add it to CI
 
 ### GitHub Actions
 
@@ -47,90 +56,142 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # the base branch must be available for `diff`
+          fetch-depth: 0 # diff needs the base branch
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npx @amittksharma/provenance-guard diff --base origin/${{ github.base_ref }} --format markdown >> "$GITHUB_STEP_SUMMARY"
+      - run: >
+          npx @amittksharma/provenance-guard diff --base origin/${{ github.base_ref }}
+          --format markdown >> "$GITHUB_STEP_SUMMARY"
 ```
 
-The Markdown report appears on the workflow run's summary page. The step fails when there is an error finding.
+To show findings in GitHub code scanning, add `--output sarif=provenance-guard.sarif` and upload the file with `github/codeql-action/upload-sarif`.
+
+### Azure DevOps
+
+```yaml
+steps:
+  - checkout: self
+    fetchDepth: 0
+  - task: NodeTool@0
+    inputs:
+      versionSpec: "22.x"
+  - script: >
+      npx @amittksharma/provenance-guard diff --base origin/main
+      --output junit=$(Build.ArtifactStagingDirectory)/provenance-guard.xml
+      --output sarif=$(Build.ArtifactStagingDirectory)/CodeAnalysisLogs/provenance-guard.sarif
+      --output html=$(Build.ArtifactStagingDirectory)/report/provenance-guard.html
+  - task: PublishTestResults@2 # → Tests tab
+    condition: always()
+    inputs:
+      testResultsFormat: JUnit
+      testResultsFiles: $(Build.ArtifactStagingDirectory)/provenance-guard.xml
+  - task: PublishBuildArtifacts@1 # → Scans tab (needs the free "SARIF SAST Scans Tab" extension)
+    condition: always()
+    inputs:
+      PathtoPublish: $(Build.ArtifactStagingDirectory)/CodeAnalysisLogs
+      ArtifactName: CodeAnalysisLogs
+  - task: PublishBuildArtifacts@1 # → downloadable HTML report
+    condition: always()
+    inputs:
+      PathtoPublish: $(Build.ArtifactStagingDirectory)/report
+      ArtifactName: provenance-guard-report
+```
+
+For pull requests, replace `origin/main` with your target branch.
 
 ### Any other CI
 
 ```bash
 git fetch origin main
-npx @amittksharma/provenance-guard diff --base origin/main --format markdown > provenance-guard.md
+npx @amittksharma/provenance-guard diff --base origin/main --output html=provenance-guard.html
 ```
 
-Use `--format json` if another tool will read the result.
+## Reports
+
+`--format <name>` chooses what is printed to the terminal. `--output <name>=<file>` writes a report file, and you can repeat it. All reports come from one check, so extra formats don't make extra registry requests.
+
+| Format     | Best for                                                                                                   |
+| ---------- | ---------------------------------------------------------------------------------------------------------- |
+| `text`     | Terminals (default)                                                                                        |
+| `markdown` | PR comments and CI step summaries                                                                          |
+| `html`     | Sharing with people outside CI. One self-contained file ([example](docs/examples/report.html))             |
+| `sarif`    | GitHub code scanning, the Azure DevOps Scans tab, any SARIF viewer ([example](docs/examples/report.sarif)) |
+| `junit`    | The Azure DevOps Tests tab, Jenkins, GitLab                                                                |
+| `json`     | Scripts and dashboards                                                                                     |
+
+### HTML report
+
+![HTML report: status, summary cards and findings with evidence](docs/images/html-report.png)
+
+Each finding shows the package, the rule, which workspaces use it, the evidence (publisher, maintainer status, release age, previous version) and where it sits in the lockfile. Info and allowed findings are collapsed below, each with its reason.
+
+### Markdown (PR summary)
+
+```markdown
+### provenance-guard
+
+| Severity | Package                                                                                                   | Rule                | Detail                                                   | Used by |
+| -------- | --------------------------------------------------------------------------------------------------------- | ------------------- | -------------------------------------------------------- | ------- |
+| ⚠️ warn  | 21 packages: `@typescript/typescript-aix-ppc64`, `@typescript/typescript-darwin-arm64`, … +16 more @7.0.2 | `publisher-changed` | published by microsoft1es; previously typescript-deploys | `.`     |
+
+115 packages checked.
+
+<details><summary>2 info findings</summary> … </details>
+<details><summary>1 package could not be verified</summary> … </details>
+```
+
+### JSON
+
+```json
+{
+  "checked": 115,
+  "findings": [
+    {
+      "rule": "trust-downgrade",
+      "severity": "info",
+      "name": "vite",
+      "version": "5.4.21",
+      "message": "vite@5.4.21 has provenance; earlier releases had trusted-publisher",
+      "context": "Newer release lines use trusted-publisher; the 5.x line never had better than provenance, …",
+      "usedBy": ["packages/ui"],
+      "locations": [{ "file": "package-lock.json", "line": 1433 }],
+      "evidence": { "publisher": "vitebot", "publisherIsMaintainer": true, "ageDays": 401, "line": "5.x" }
+    }
+  ],
+  "groups": [],
+  "suppressed": [],
+  "unverified": [],
+  "warnings": [],
+  "notes": []
+}
+```
 
 ## Configure
 
-Put an optional `.provenance-guard.json` in the project root. All keys are optional.
+Optional. Put a `.provenance-guard.json` in your project root:
 
 ```jsonc
 {
-  "base": "origin/main", // default ref for `diff`
-  "lockfile": "pnpm-lock.yaml", // default: auto-detect
-  "recursive": false, // true: check every lockfile below the root
-  "exclude": ["test/fixtures"], // lockfiles under these paths are ignored
-  "registry": "https://registry.npmjs.org",
+  "base": "origin/main", // default branch or commit for `diff`
+  "recursive": true, // check every lockfile in a monorepo
+  "exclude": ["test/fixtures"], // folders whose lockfiles to ignore
   "rules": {
-    "publisher-changed": "off", // "error" | "warn" | "off"
-    "install-script-added": "error"
+    "publisher-changed": "info" // "error" | "warn" | "info" | "off"
   },
   "allow": [
     {
-      "name": "undici-types",
+      "name": "some-package",
       "rule": "trust-downgrade",
-      "version": "6.21.0", // optional: only this version
-      "reason": "6.14–7.0.0 were published without provenance by the same maintainer; checked 2026-11-24"
+      "version": "1.2.3", // optional: only this version
+      "reason": "Maintainers moved CI, confirmed in their issue #42"
     }
   ]
 }
 ```
 
-- **`rules`**: change a rule's severity, or turn it off.
-- **`exclude`**: folders whose lockfiles should be ignored (test fixtures, examples). Matches whole path segments: `apps/web` doesn't exclude `apps/web2`.
-- **`allow`**: accept a specific finding. A `reason` is **required**, so every exception is explained in code review. Add `version` to keep the exception narrow. Without it, every version of that package is allowed for that rule.
-
-CLI flags override the config file:
-
-```text
-provenance-guard <diff|scan> [--base <ref>] [--lockfile <path> | --recursive]
-                             [--format text|json|markdown] [--config <path>] [--registry <url>]
-```
-
-## Monorepos (Nx, Turborepo, Lerna, npm/pnpm/Yarn workspaces)
-
-Run it from the repo root. Workspace tools share one lockfile at the root, so one run checks every app and package. Each finding says **which workspaces use the package**, directly or through other packages and workspaces:
-
-```text
-❌ error trust-downgrade      debug@4.4.2 has none; earlier releases had provenance — used by apps/web, packages/ui
-```
-
-In Markdown the same information appears in a **Used by** column, and in JSON as `usedBy`. Single-project repos don't get `usedBy`, because there's only one project it could name.
-
-**Several lockfiles** (old Lerna setups, pnpm with `shared-workspace-lockfile=false`, nested projects):
-
-- By default only the root lockfile is checked. If others exist below it, the report says so: `⚠️ 2 more lockfiles not checked: …`. The ✅ is then withheld.
-- `--recursive` checks every lockfile below the current folder. Findings that are exactly the same in several lockfiles (same rule, package, version and message) appear once, listing every workspace that uses the package. If the details differ, for example a different previous publisher because each lockfile upgraded from a different version, each one gets its own row.
-- Recursive mode can also be set in the config with `"recursive": true` or `false`.
-- Add folders you don't want checked (test fixtures, examples) to `exclude`.
-
-Lockfile discovery walks the whole folder tree and skips only `node_modules` and `.git`. Git-ignored folders, dot folders (for example `.github/actions/*`), submodules and nested repos are all included, so nothing is dropped without a warning. Folders that can't be read are listed in a warning. Put anything you don't want checked in `exclude`.
-
-**Attribution details:**
-
-- A workspace's `devDependencies` count only for that workspace, not for workspaces that depend on it.
-- Yarn Berry lockfiles don't separate dev from production dependencies, so dev dependencies there are attributed to every workspace that depends on the package.
-- A package that no workspace reaches (for example an extraneous entry) gets no `usedBy` rather than a guess.
-- Workspace and local links (`workspace:`, `link:`, `file:`) are followed through the lockfile. A local package outside the workspaces, such as `file:../shared`, is followed but isn't listed as a workspace.
-- **Notes (ℹ️)** report gaps in attribution, never in checking. Every package in the lockfile is still checked, the ✅ and the exit code are unaffected, and only `usedBy` may be incomplete:
-  - `workspace dependency could not be resolved: apps/web → packages/gone`: the link target isn't in the lockfile, so it isn't followed.
-  - `required dependency is missing from the lockfile: debug@4.4.1 → ms`: the lockfile is likely out of sync with `package.json`. Optional and peer dependencies are not reported, because skipping them is normal.
-- Yarn v1 workspace patterns support `*`, `**`, `?`, `{a,b}` and `!negation`.
+- **`allow`**: accept a finding you've reviewed. A **reason is required**, and allowed findings still appear in every report as "allowed", so exceptions stay visible.
+- Command-line flags override the file: `--base`, `--lockfile`, `--recursive`, `--config`, `--registry`, `--format`, `--output`.
 
 ## Use it from code
 
@@ -140,85 +201,68 @@ import { check, render } from '@amittksharma/provenance-guard';
 const result = await check({
   cwd: '/path/to/project',
   base: 'origin/main', // omit to check the whole lockfile
-  recursive: true, // every lockfile below cwd
-  exclude: ['test/fixtures'],
-  rules: { 'publisher-changed': 'off' },
-  allow: [{ name: 'undici-types', rule: 'trust-downgrade', reason: 'known gap' }],
-  headers: { authorization: `Bearer ${process.env.REGISTRY_TOKEN}` }, // private mirror
-  concurrency: 8,
+  rules: { 'publisher-changed': 'info' },
 });
 
-console.log(render('markdown', result));
-// result: { checked, findings[{ rule, severity, name, version, message, usedBy? }], unverified, warnings, notes, exitCode }
+console.log(render('markdown', result)); // 'text' | 'json' | 'markdown' | 'sarif' | 'junit' | 'html'
 process.exitCode = result.exitCode; // 0 or 1
 ```
 
-`check()` throws when it can't finish (no lockfile, invalid options, registry error). Catch the error and decide how to handle it.
+| Option                               | Default        | Purpose                                                        |
+| ------------------------------------ | -------------- | -------------------------------------------------------------- |
+| `cwd`                                | current folder | Project folder                                                 |
+| `base`                               | —              | Git branch or commit to compare with. Unset: check everything  |
+| `lockfile` / `recursive` / `exclude` | auto-detect    | Which lockfiles to check                                       |
+| `rules` / `allow`                    | —              | Severity overrides and accepted findings                       |
+| `registry` / `headers`               | npmjs.org      | Registry URL and extra headers (for example auth for a mirror) |
+| `fetchJson`                          | built-in       | Your own HTTP function (proxies, caching, tests)               |
 
-| Option        | Default                         | Purpose                                                                     |
-| ------------- | ------------------------------- | --------------------------------------------------------------------------- |
-| `cwd`         | `process.cwd()`                 | Project directory                                                           |
-| `lockfile`    | auto-detect                     | `package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml` or `yarn.lock` |
-| `recursive`   | `false`                         | Check every lockfile below `cwd`. Can't be combined with `lockfile`         |
-| `exclude`     | `[]`                            | Paths whose lockfiles are ignored                                           |
-| `base`        | —                               | Git ref. Set → check changed packages only; unset → check all               |
-| `rules`       | built-in severities             | `{ [rule]: 'error' \| 'warn' \| 'off' }`                                    |
-| `allow`       | `[]`                            | `{ name, rule, version?, reason }[]`                                        |
-| `registry`    | `$npm_config_registry` or npmjs | Registry base URL                                                           |
-| `headers`     | `{}`                            | Extra request headers (auth)                                                |
-| `concurrency` | `8`                             | Parallel registry requests                                                  |
-| `fetchJson`   | built-in                        | Replace the HTTP layer (proxy, cache, tests)                                |
+`check()` throws when it can't finish. Catch the error and fail your job.
 
-Also exported: `createFetchJson`, `RegistryError`, `RULE_IDS`, `LOCKFILES`, `discoverLockfiles`, `workspaceUsage`, `nodeProjectFiles` and all result types.
+## Monorepos
 
-## Handling a finding
+Run it from the repository root. Each finding lists the workspaces that use the package:
 
-1. **Look at the package page** on npmjs.com, and at the repo's releases and issues. Was the change announced (new CI, new maintainer, project moved)?
-2. **Not explained?** Don't merge. Pin the previous version and report it to the maintainers.
-3. **Explained?** Add an `allow` entry with the version and a reason.
+```text
+❌ error trust-downgrade  debug@4.4.2 has none; earlier releases had provenance — used by apps/web, packages/ui
+```
 
-**What to expect on the first `scan`:** long-lived projects often have old gaps. For example, `undici-types` (used by `@types/node`) dropped provenance between 6.14 and 7.0.0. `publisher-changed` also fires when a large project changes its publishing account (TypeScript did in 2026). Allowlist the real gaps once, or set `publisher-changed` to `off`. After that, run `diff` on pull requests.
+If there are other lockfiles below the root, the report says so. Add `--recursive` to check them all.
 
-## Use it together with a release-age gate
+## When it finds something
 
-provenance-guard compares a version against the package's history. A **release-age gate** delays installing brand-new versions, which gives the community time to spot attacks. Every major package manager now has one built in; turn it on as well:
+1. **Look at the package:** its npm page, repository and recent issues. Was the change announced (new CI, new maintainer, moved repo)?
+2. **Not explained?** Don't merge. Pin the previous version and tell the maintainers.
+3. **Explained?** Add an `allow` entry with the version and the reason.
 
-| Package manager | Setting                                                                         |
-| --------------- | ------------------------------------------------------------------------------- |
-| npm             | `min-release-age`                                                               |
-| pnpm            | `minimumReleaseAge` (pnpm also has `trustPolicy: no-downgrade` at install time) |
-| Yarn Berry      | `npmMinimalAgeGate`                                                             |
-
-## Limits
-
-- **Only the public npm data model.** Mirrors that strip `_npmUser` or attestation data produce no findings for those packages. Packages the registry returns 404 for show as _unverified_, and so do versions whose provenance attestation can't be read. Point `registry` at `https://registry.npmjs.org` for public packages.
-- **It catches what the registry shows.** A compromise that goes through the project's real CI (for example a poisoned workflow in the same repo) keeps provenance and repo unchanged. Code review and the release-age gate cover that case.
-- `scan` downloads one full packument per package. On a big lockfile, expect up to a minute.
+Also turn on your package manager's release-age gate (npm `min-release-age`, pnpm `minimumReleaseAge`, Yarn `npmMinimalAgeGate`). It delays brand-new versions while the community spots attacks.
 
 ## Troubleshooting
 
-| Symptom                                         | Fix                                                                                                                                                                  |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `unable to get local issuer certificate`        | Corporate TLS proxy. Node ≥ 22.15: `NODE_OPTIONS=--use-system-ca`. Older: `NODE_EXTRA_CA_CERTS=/path/to/corp-ca.pem`                                                 |
-| `git show origin/main:package-lock.json failed` | Shallow clone. Use `fetch-depth: 0` or `git fetch origin main`                                                                                                       |
-| A private package shows as _unverified_         | Expected: the registry returned 404. Pass `registry` and `headers` if your mirror serves full packuments                                                             |
-| `HTTP 401` / `HTTP 403` and exit 2              | `npx` passed on your project's private registry (`npm_config_registry`) without a token. Add `--registry https://registry.npmjs.org`, or pass `headers` with a token |
+| Problem                                  | Fix                                                                                                              |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `unable to get local issuer certificate` | Corporate proxy. Node ≥ 22.15: `NODE_OPTIONS=--use-system-ca`. Older Node: `NODE_EXTRA_CA_CERTS=/path/to/ca.pem` |
+| `git show origin/main:… failed`          | Shallow clone: use `fetch-depth: 0` or `git fetch origin main`                                                   |
+| `HTTP 401` / `HTTP 403`                  | `npx` picked up your private registry. Add `--registry https://registry.npmjs.org`                               |
+| A private package is "unverified"        | Expected: it isn't on the public registry                                                                        |
 
-## Development
+## Learn more
+
+- [A story: the lockfile that never lies](docs/story.md): a walkthrough of a team adopting it, including a fire drill
+- [How it works](docs/how-it-works.md): severity rules, grouping, monorepos, report formats, limits
+- [Rules roadmap](docs/rules-roadmap.md): planned rules and how to add one
+- [Background](docs/background.md): the attacks this targets and what other tools miss
+- [Architecture](docs/architecture.md): code structure, for contributors
+
+## Contributing
 
 ```bash
-npm install          # also installs the husky git hooks
-npm test             # node:test, runs TypeScript directly (Node ≥ 22.18)
-npm run lint:fix     # biome
-npm run types        # tsc --noEmit
-npm run build        # → dist/
-npm run bump         # commit-and-tag-version: version, CHANGELOG, tag
+npm install     # also sets up the git hooks
+npm test        # needs Node ≥ 22.18
+npm run lint:fix && npm run types
 ```
 
-- **Pre-commit hook:** lint, types and tests.
-- **Commit-msg hook:** requires [Conventional Commits](https://www.conventionalcommits.org) (`feat: …`, `fix(registry): …`) so the changelog can be generated.
-
-Design notes: [docs/design-discussion.md](docs/design-discussion.md) · Architecture: [docs/architecture.md](docs/architecture.md)
+Commits follow [Conventional Commits](https://www.conventionalcommits.org) (`feat: …`, `fix: …`). Releases are published from GitHub Actions with npm trusted publishing, so every version carries provenance.
 
 ## License
 

@@ -27,6 +27,7 @@ const fakeFetch: FetchJson = async (url) => {
       status: 200,
       body: {
         name: 'native-addon',
+        maintainers: [{ name: 'alice', email: 'a@example.com' }, { name: 'bob' }],
         time: { '1.0.0': '2024-01-01T00:00:00.000Z', '1.1.0': '2024-02-01T00:00:00.000Z' },
         versions: { '1.1.0': v('1.1.0', { gypfile: true }), '1.0.0': v('1.0.0', {}) },
       },
@@ -220,4 +221,8 @@ test('createLimiter never exceeds its limit, whatever microtask a new caller arr
     await Promise.all(runs);
     assert.equal(peak, 1, `late caller after ${offset} microtasks`);
   }
+});
+
+test('history includes the current maintainer accounts', async () => {
+  assert.deepEqual((await history('native-addon')).maintainers, ['alice', 'bob']);
 });

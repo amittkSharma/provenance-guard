@@ -77,7 +77,7 @@ function parseYarnBerry(content: string): Packages {
   return pkgs;
 }
 
-export interface YarnV1Entry {
+interface YarnV1Entry {
   /** Header descriptors, e.g. `lodash@^4.17.20`, `string-width-cjs@npm:string-width@^4.2.0`. */
   descriptors: string[];
   /** Real package name (an `npm:` alias resolves to the aliased package). */
@@ -89,7 +89,6 @@ export interface YarnV1Entry {
   optionalDependencies: Record<string, string>;
 }
 
-/** Parses a Yarn v1 lockfile into its entries. */
 export function yarnV1Entries(content: string): YarnV1Entry[] {
   const entries: YarnV1Entry[] = [];
   let entry: YarnV1Entry | undefined;
@@ -152,4 +151,35 @@ export function parseLockfile(filename: string, raw: string): Packages {
     default:
       throw new Error(`unsupported lockfile: ${filename} (expected package-lock.json, pnpm-lock.yaml or yarn.lock)`);
   }
+}
+
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * 1-based line of a package's entry in a lockfile, for report locations (e.g. SARIF). Falls back to 1.
+ * npm lockfiles are searched by their `packages` keys; the YAML and Yarn formats by entry headers.
+ */
+export function findLine(raw: string, name: string, version: string): number {
+  const lines = raw.replace(/\r\n/g, '\n').split('\n');
+  if (raw.trimStart().startsWith('{')) {
+    const packages = (JSON.parse(raw) as { packages?: Record<string, NpmEntry> }).packages ?? {};
+    const key = Object.keys(packages).find((path) => {
+      const at = path.lastIndexOf('node_modules/');
+      const entry = packages[path];
+      return at !== -1 && entry.version === version && (entry.name ?? path.slice(at + 'node_modules/'.length)) === name;
+    });
+    const index = key === undefined ? -1 : lines.findIndex((line) => line.trimStart().startsWith(`"${key}":`));
+    return index + 1 || 1;
+  }
+  const header = new RegExp(`^\\s*["']?/?${escapeRegExp(name)}@`);
+  const exact = new RegExp(`@${escapeRegExp(version)}(?=[(:'"\\s,]|$)`);
+  const versionField = new RegExp(`^\\s+version:? "?${escapeRegExp(version)}"?\\s*$`);
+  for (let i = 0; i < lines.length; i++) {
+    if (!header.test(lines[i])) continue;
+    if (exact.test(lines[i])) return i + 1;
+    for (let j = i + 1; j < lines.length && lines[j].startsWith(' '); j++) {
+      if (versionField.test(lines[j])) return i + 1;
+    }
+  }
+  return 1;
 }

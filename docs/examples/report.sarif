@@ -1,0 +1,1173 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "provenance-guard",
+          "version": "0.1.0",
+          "informationUri": "https://github.com/amittkSharma/provenance-guard",
+          "rules": [
+            {
+              "id": "trust-downgrade",
+              "name": "Trustdowngrade",
+              "shortDescription": {
+                "text": "Published with weaker trust than earlier releases"
+              },
+              "fullDescription": {
+                "text": "This version was published with weaker trust than earlier releases of the same package (trusted publisher → provenance → none). Attackers with a stolen npm token publish by hand, which drops the provenance a CI build would add."
+              },
+              "help": {
+                "text": "Check the package’s repository and release notes for an announced change of CI. If there is none, pin the previous version and contact the maintainers. If it is explained, add an allowlist entry with the reason.",
+                "markdown": "**Trust downgrade.** This version was published with weaker trust than earlier releases of the same package (trusted publisher → provenance → none). Attackers with a stolen npm token publish by hand, which drops the provenance a CI build would add.\n\n**What to do:** Check the package’s repository and release notes for an announced change of CI. If there is none, pin the previous version and contact the maintainers. If it is explained, add an allowlist entry with the reason."
+              },
+              "helpUri": "https://github.com/amittkSharma/provenance-guard#readme",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "supply-chain"
+                ],
+                "security-severity": "8.0"
+              }
+            },
+            {
+              "id": "source-repo-changed",
+              "name": "Sourcerepositorychanged",
+              "shortDescription": {
+                "text": "Built from a different repository than before"
+              },
+              "fullDescription": {
+                "text": "The provenance attestation says this version was built from a different source repository than the previous attested release. A fork or a hijacked CI can produce valid provenance from the wrong repository."
+              },
+              "help": {
+                "text": "Confirm the project officially moved repositories. If not, pin the previous version and report it to the maintainers and to npm.",
+                "markdown": "**Source repository changed.** The provenance attestation says this version was built from a different source repository than the previous attested release. A fork or a hijacked CI can produce valid provenance from the wrong repository.\n\n**What to do:** Confirm the project officially moved repositories. If not, pin the previous version and report it to the maintainers and to npm."
+              },
+              "helpUri": "https://github.com/amittkSharma/provenance-guard#readme",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "supply-chain"
+                ],
+                "security-severity": "9.0"
+              }
+            },
+            {
+              "id": "install-script-added",
+              "name": "Installscriptadded",
+              "shortDescription": {
+                "text": "Runs code on install, unlike the previous release"
+              },
+              "fullDescription": {
+                "text": "This version adds a preinstall, install or postinstall script (or a native build) that the previous release did not have. Worms such as Shai-Hulud spread through newly added install scripts."
+              },
+              "help": {
+                "text": "Read the script in the published package. Install with --ignore-scripts until it is reviewed, and allowlist it once you trust it.",
+                "markdown": "**Install script added.** This version adds a preinstall, install or postinstall script (or a native build) that the previous release did not have. Worms such as Shai-Hulud spread through newly added install scripts.\n\n**What to do:** Read the script in the published package. Install with --ignore-scripts until it is reviewed, and allowlist it once you trust it."
+              },
+              "helpUri": "https://github.com/amittkSharma/provenance-guard#readme",
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "supply-chain"
+                ],
+                "security-severity": "6.0"
+              }
+            },
+            {
+              "id": "publisher-changed",
+              "name": "Publisherchanged",
+              "shortDescription": {
+                "text": "Published by hand by a different npm account"
+              },
+              "fullDescription": {
+                "text": "This version was published without a trusted publisher by a different npm account than the previous release. It can be a new maintainer, or a hijacked account."
+              },
+              "help": {
+                "text": "Check that the account is a listed maintainer and that the change was announced. Turn the rule off if your dependencies change publishers often.",
+                "markdown": "**Publisher changed.** This version was published without a trusted publisher by a different npm account than the previous release. It can be a new maintainer, or a hijacked account.\n\n**What to do:** Check that the account is a listed maintainer and that the change was announced. Turn the rule off if your dependencies change publishers often."
+              },
+              "helpUri": "https://github.com/amittkSharma/provenance-guard#readme",
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "supply-chain"
+                ],
+                "security-severity": "5.0"
+              }
+            },
+            {
+              "id": "unverified",
+              "name": "Notverified",
+              "shortDescription": {
+                "text": "The package could not be checked"
+              },
+              "fullDescription": {
+                "text": "The registry did not return this package or version (for example a private package missing from the public registry), or its provenance attestation could not be read."
+              },
+              "help": {
+                "text": "Point `registry` and `headers` at a registry that serves this package, or verify it manually.",
+                "markdown": "**Not verified.** The registry did not return this package or version (for example a private package missing from the public registry), or its provenance attestation could not be read.\n\n**What to do:** Point `registry` and `headers` at a registry that serves this package, or verify it manually."
+              },
+              "helpUri": "https://github.com/amittkSharma/provenance-guard#readme",
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "supply-chain"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "endTimeUtc": "2026-11-25T19:28:22.310Z",
+          "toolExecutionNotifications": []
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-aix-ppc64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 806
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "735e47e017953233c7f81b66ed494eb2"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-aix-ppc64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:49:32.839Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-darwin-arm64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 823
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "dda2e512c51a3217967a6f8a51ac7264"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-darwin-arm64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:49:36.897Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-darwin-x64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 840
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "aa0a102f2e454afe0271bf2a8b0266b9"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-darwin-x64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:49:40.886Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-freebsd-arm64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 857
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "1b0d77805c12354ae4ae4c83bc68273f"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-freebsd-arm64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:49:45.020Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-freebsd-x64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 874
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "ddd360ae352c7010fd8ee8802ed07dc3"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-freebsd-x64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:49:49.189Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-linux-arm@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 891
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "f5db1adab0cbc5c9e9073ac2d3a97224"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-linux-arm",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:49:53.075Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-linux-arm64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 908
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "3e91dd02eef3c5b0106d83f194d173ed"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-linux-arm64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:49:57.270Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-linux-loong64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 925
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "28bc895430441802ef4cc550b418b6f7"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-linux-loong64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:50:01.501Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-linux-mips64el@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 942
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "d82a773760655694de55578100efd435"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-linux-mips64el",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:50:05.178Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-linux-ppc64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 959
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "0c785481b7bb04a5df36d7489a12ba5e"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-linux-ppc64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:50:09.539Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-linux-riscv64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 976
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "09aaacbd0feaf8e54a4b82a07c4211c2"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-linux-riscv64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:50:13.357Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-linux-s390x@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 993
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "a330f99460a52f5c67c3cbf8bd8bb799"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-linux-s390x",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:50:17.275Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-linux-x64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 1010
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "b74848e4028b1286a370870e07cb2bfc"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-linux-x64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:50:21.639Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-netbsd-arm64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 1027
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "817804710209c8117909a48355139922"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-netbsd-arm64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:50:25.229Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-netbsd-x64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 1044
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "46fbc60b0e3acf522dc553d7ff2efa05"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-netbsd-x64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:50:29.798Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-openbsd-arm64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 1061
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "2b338f1dcf04c91dd95262a3816859de"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-openbsd-arm64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:50:33.600Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-openbsd-x64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 1078
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "815710abe2adb81b9d4bb69ff4c19d8d"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-openbsd-x64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:50:37.789Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-sunos-x64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 1095
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "64e2ab7f9c11eafd789aca442bd9ab3b"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-sunos-x64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:50:41.700Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-win32-arm64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 1112
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "f92845139efa6b73166a1c7100359aff"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-win32-arm64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:50:45.825Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "@typescript/typescript-win32-x64@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 1129
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "60c22efbab1b8244753c42b20b548c94"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "@typescript/typescript-win32-x64",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:50:50.403Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "publisher-changed",
+          "ruleIndex": 3,
+          "level": "warning",
+          "message": {
+            "text": "typescript@7.0.2 published by microsoft1es; previously typescript-deploys"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 1387
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "b759d6f2ae220fbc8582b5fcb5f6c5ff"
+          },
+          "correlationGuid": "0e8178e2-90b7-4b46-84ee-f9e71ba426c8",
+          "properties": {
+            "package": "typescript",
+            "version": "7.0.2",
+            "usedBy": [
+              "."
+            ],
+            "evidence": {
+              "publishedAt": "2026-07-08T15:55:18.431Z",
+              "ageDays": 140,
+              "trust": "none",
+              "publisher": "microsoft1es",
+              "publisherIsMaintainer": true,
+              "previousVersion": "7.0.1-rc",
+              "previousPublisher": "typescript-deploys",
+              "line": "7.x",
+              "bestEarlierTrust": "none",
+              "bestLineTrust": "none"
+            }
+          }
+        },
+        {
+          "ruleId": "trust-downgrade",
+          "ruleIndex": 0,
+          "level": "note",
+          "message": {
+            "text": "undici-types@6.21.0 has none; earlier releases had provenance. Published 742 days ago by matteo.collina, a listed maintainer who also published earlier 6.x releases with provenance; later 6.x releases (6.23.0) went back to trusted-publisher."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 1426
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "acec5bff5e3fe047934b1253c3d94c4b"
+          },
+          "properties": {
+            "package": "undici-types",
+            "version": "6.21.0",
+            "usedBy": [
+              "packages/ui"
+            ],
+            "context": "Published 742 days ago by matteo.collina, a listed maintainer who also published earlier 6.x releases with provenance; later 6.x releases (6.23.0) went back to trusted-publisher.",
+            "evidence": {
+              "publishedAt": "2024-11-13T13:37:09.135Z",
+              "ageDays": 742,
+              "trust": "none",
+              "publisher": "matteo.collina",
+              "publisherIsMaintainer": true,
+              "previousVersion": "6.20.0",
+              "previousPublisher": "matteo.collina",
+              "line": "6.x",
+              "bestEarlierTrust": "provenance",
+              "bestLineTrust": "provenance",
+              "lastAttestedVersion": "6.19.2"
+            }
+          }
+        },
+        {
+          "ruleId": "trust-downgrade",
+          "ruleIndex": 0,
+          "level": "note",
+          "message": {
+            "text": "vite@5.4.21 has provenance; earlier releases had trusted-publisher. Newer release lines use trusted-publisher; the 5.x line never had better than provenance, so this release is not weaker than its own line."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 1433
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "0327c3ce6ef458aee6a88e023d504fb3"
+          },
+          "properties": {
+            "package": "vite",
+            "version": "5.4.21",
+            "usedBy": [
+              "packages/ui"
+            ],
+            "context": "Newer release lines use trusted-publisher; the 5.x line never had better than provenance, so this release is not weaker than its own line.",
+            "evidence": {
+              "publishedAt": "2025-10-20T05:32:04.015Z",
+              "ageDays": 401,
+              "trust": "provenance",
+              "publisher": "vitebot",
+              "publisherIsMaintainer": true,
+              "previousVersion": "6.4.1",
+              "previousPublisher": "vitebot",
+              "line": "5.x",
+              "bestEarlierTrust": "trusted-publisher",
+              "bestLineTrust": "provenance",
+              "lastAttestedVersion": "6.4.1",
+              "sourceRepo": "https://github.com/vitejs/vite",
+              "previousSourceRepo": "https://github.com/vitejs/vite"
+            }
+          }
+        },
+        {
+          "ruleId": "unverified",
+          "ruleIndex": 4,
+          "level": "note",
+          "message": {
+            "text": "@shop/internal-auth@2.3.0 could not be verified: registry 404"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package-lock.json"
+                },
+                "region": {
+                  "startLine": 1938
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "provenanceGuard/v1": "1f52a01290c1b9f11a5de968bb29d922"
+          },
+          "properties": {
+            "package": "@shop/internal-auth",
+            "version": "2.3.0",
+            "usedBy": [
+              "apps/web"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

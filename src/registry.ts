@@ -6,6 +6,8 @@ export type FetchJson = (url: string) => Promise<{ status: number; body?: unknow
 /** A package's published versions, oldest first. */
 export interface History {
   versions: VersionFacts[];
+  /** Current maintainer accounts of the package. */
+  maintainers?: string[];
 }
 
 /** The registry could not be read (network error, 5xx, 429). The run must not pass silently. */
@@ -68,8 +70,6 @@ export function createLimiter(concurrency: number): <T>(task: () => Promise<T>) 
   };
 }
 
-export const defaultFetchJson: FetchJson = createFetchJson();
-
 interface PackumentVersion {
   _npmUser?: { name?: string; trustedPublisher?: unknown };
   dist?: { attestations?: { url?: string; provenance?: unknown } };
@@ -78,6 +78,7 @@ interface PackumentVersion {
 }
 
 interface Packument {
+  maintainers?: { name?: string }[];
   time?: Record<string, string>;
   versions?: Record<string, PackumentVersion>;
 }
@@ -148,7 +149,9 @@ export function createRegistry(fetchJson: FetchJson, base: string) {
     /** All published versions with their trust facts (without `sourceRepo`), or `Unverified` on 404. */
     async history(name: string): Promise<History | Unverified> {
       const p = await packument(name);
-      return 'reason' in p ? p : { versions: toFacts(p) };
+      if ('reason' in p) return p;
+      const maintainers = (p.maintainers ?? []).map((m) => m.name).filter((n): n is string => Boolean(n));
+      return { versions: toFacts(p), maintainers };
     },
 
     /**
@@ -159,6 +162,7 @@ export function createRegistry(fetchJson: FetchJson, base: string) {
     async withSourceRepos(name: string, history: History, versions: string[]): Promise<History> {
       const wanted = new Set(versions);
       return {
+        ...history,
         versions: await Promise.all(
           history.versions.map(async (facts) => {
             if (!wanted.has(facts.version) || facts.trust === 'none') return facts;
@@ -170,5 +174,3 @@ export function createRegistry(fetchJson: FetchJson, base: string) {
     },
   };
 }
-
-export type Registry = ReturnType<typeof createRegistry>;

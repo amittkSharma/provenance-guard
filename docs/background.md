@@ -1,8 +1,6 @@
-# provenance-guard — design discussion
+# Why provenance-guard exists
 
-Captured from the planning discussion on 2026-11-24. The implementation plan is in [implementation-plan.md](implementation-plan.md).
-
-## The real problem
+## The problem
 
 Almost every big npm compromise in 2025 worked the same way: an attacker obtained a maintainer's npm token or session (phishing, a leaked CI secret, a malicious package that stole tokens), then published a new patch version from their own machine.
 
@@ -23,7 +21,7 @@ The registry already exposes the signals needed to catch it:
 
 Nobody compares these **against the package's own history** when a lockfile changes.
 
-## The gap (what exists versus what is missing)
+## The gap
 
 Checked against the current docs on 2026-11-24:
 
@@ -45,36 +43,4 @@ Checked against the current docs on 2026-11-24:
 
 **Deliberately not built:** a release-age gate. npm, Yarn and pnpm all have one now, so the README tells users to turn it on.
 
-## Features (v1)
-
-| #   | Feature                                                                                                                               | Severity | Catches                              |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------ |
-| F1  | `trust-downgrade`: version's trust level is below the best level of any earlier release (`trusted-publisher` > `provenance` > `none`) | error    | Nx-style token theft                 |
-| F2  | `source-repo-changed`: provenance repo differs from the previous attested release                                                     | error    | Builds from a fork or stolen-CI repo |
-| F3  | `install-script-added`: `preinstall`/`install`/`postinstall`/`gypfile` present, absent in the previous release                        | warn     | Shai-Hulud-style worms               |
-| F4  | `publisher-changed`: no trusted publisher, and `_npmUser.name` differs from the previous release                                      | warn     | Hijacked or new maintainer accounts  |
-| F5  | `diff --base <ref>`: checks only packages added or upgraded relative to a git ref                                                     | —        | PR gate                              |
-| F6  | `scan`: checks every package in the lockfile                                                                                          | —        | First adoption, periodic audit       |
-| F7  | Lockfiles: `package-lock.json` v2/v3, `pnpm-lock.yaml` v9, `yarn.lock` v1 and Berry                                                   | —        | Any package manager                  |
-| F8  | Output: `text`, `json`, `markdown` (for `$GITHUB_STEP_SUMMARY` / PR comments); exit 0 / 1 (error findings) / 2 (tool failure)         | —        | CI                                   |
-| F9  | Allowlist: `.provenance-guard.json` → `{ "allow": [{ "name", "rule", "reason" }] }`                                                   | —        | Real intentional changes             |
-
-**Later, add only when asked:** SARIF output, a GitHub Action wrapper, private-registry auth, expiring allowlist entries, caching results between runs.
-
-## How the v1 features map to the build tasks
-
-The tasks are split by pipeline stage, not by feature. Every rule needs the same pipeline (read lockfile → compare → fetch registry data → apply rule → report), so building per feature would repeat it four times. The trade-off: no feature works from the command line until Task 5 is done; Tasks 1–4 are tested on their own.
-
-| Feature                                      | Task(s)                   |
-| -------------------------------------------- | ------------------------- |
-| F7: read npm, pnpm and Yarn lockfiles        | 1                         |
-| F5: `diff --base` (only what the PR changed) | 2, command in 5           |
-| F6: `scan` (whole lockfile)                  | 5                         |
-| F1: `trust-downgrade`                        | 3 (trust data), 4 (rule)  |
-| F2: `source-repo-changed`                    | 3 (source repo), 4 (rule) |
-| F3: `install-script-added`                   | 3, 4                      |
-| F4: `publisher-changed`                      | 3, 4                      |
-| F8: text, JSON, Markdown output, exit codes  | 5                         |
-| F9: allowlist                                | 5                         |
-
-Decision: keep the stage-by-stage plan (5 tasks, about 11 hours).
+The rules and their roadmap are in [rules-roadmap.md](rules-roadmap.md).

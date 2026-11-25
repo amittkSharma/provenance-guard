@@ -4,7 +4,7 @@ import { LOCKFILES } from './lockfile.ts';
 
 const isLockfile = (name: string) => (LOCKFILES as readonly string[]).includes(name);
 
-export interface Discovery {
+interface Discovery {
   /** Lockfiles relative to `cwd`: root lockfiles first, then by path. */
   lockfiles: string[];
   /** Folders that could not be read; lockfiles inside them were not found. */
