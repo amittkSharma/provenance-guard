@@ -1,4 +1,4 @@
-import type { FetchJson } from './registry.ts';
+import { type FetchJson, validateFetchJsonOptions } from './registry.ts';
 import { RULE_IDS } from './rules.ts';
 import type { RuleId, Severity } from './types.ts';
 
@@ -36,12 +36,15 @@ export interface CheckOptions {
   headers?: Record<string, string>;
   /** Parallel registry requests. Default 8. Ignored when `fetchJson` is given. */
   concurrency?: number;
+  /** Per-request registry timeout in milliseconds. Default 30000. Ignored when `fetchJson` is given. */
+  timeoutMs?: number;
   /** Replace the HTTP layer entirely (tests, proxies, caching). */
   fetchJson?: FetchJson;
 }
 
 /** Options often come from a JSON config file, so their shape is checked at runtime. */
 export function validateOptions(options: CheckOptions): void {
+  validateFetchJsonOptions(options);
   for (const [rule, level] of Object.entries(options.rules ?? {})) {
     if (!RULE_IDS.includes(rule as RuleId)) throw new Error(`unknown rule "${rule}" (expected ${RULE_IDS.join(', ')})`);
     if (!['error', 'warn', 'info', 'off'].includes(level as string)) {

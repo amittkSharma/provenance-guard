@@ -176,6 +176,7 @@ Optional. Put a `.provenance-guard.json` in your project root:
   "base": "origin/main", // default branch or commit for `diff`
   "recursive": true, // check every lockfile in a monorepo
   "exclude": ["test/fixtures"], // folders whose lockfiles to ignore
+  "timeoutMs": 60000, // per registry request; default 30000
   "rules": {
     "publisher-changed": "info" // "error" | "warn" | "info" | "off"
   },
@@ -215,6 +216,7 @@ process.exitCode = result.exitCode; // 0 or 1
 | `lockfile` / `recursive` / `exclude` | auto-detect    | Which lockfiles to check                                       |
 | `rules` / `allow`                    | —              | Severity overrides and accepted findings                       |
 | `registry` / `headers`               | npmjs.org      | Registry URL and extra headers (for example auth for a mirror) |
+| `timeoutMs` / `concurrency`          | 30000 / 8      | Per-request registry timeout (ms) and parallel requests        |
 | `fetchJson`                          | built-in       | Your own HTTP function (proxies, caching, tests)               |
 
 `check()` throws when it can't finish. Catch the error and fail your job.
@@ -239,12 +241,13 @@ Also turn on your package manager's release-age gate (npm `min-release-age`, pnp
 
 ## Troubleshooting
 
-| Problem                                  | Fix                                                                                                              |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `unable to get local issuer certificate` | Corporate proxy. Node ≥ 22.15: `NODE_OPTIONS=--use-system-ca`. Older Node: `NODE_EXTRA_CA_CERTS=/path/to/ca.pem` |
-| `git show origin/main:… failed`          | Shallow clone: use `fetch-depth: 0` or `git fetch origin main`                                                   |
-| `HTTP 401` / `HTTP 403`                  | `npx` picked up your private registry. Add `--registry https://registry.npmjs.org`                               |
-| A private package is "unverified"        | Expected: it isn't on the public registry                                                                        |
+| Problem                                             | Fix                                                                                                              |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `unable to get local issuer certificate`            | Corporate proxy. Node ≥ 22.15: `NODE_OPTIONS=--use-system-ca`. Older Node: `NODE_EXTRA_CA_CERTS=/path/to/ca.pem` |
+| `registry request failed: … aborted due to timeout` | Slow proxy or registry: raise `timeoutMs` in `.provenance-guard.json`                                            |
+| `git show origin/main:… failed`                     | Shallow clone: use `fetch-depth: 0` or `git fetch origin main`                                                   |
+| `HTTP 401` / `HTTP 403`                             | `npx` picked up your private registry. Add `--registry https://registry.npmjs.org`                               |
+| A private package is "unverified"                   | Expected: it isn't on the public registry                                                                        |
 
 ## Contributing
 

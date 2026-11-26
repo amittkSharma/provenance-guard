@@ -1,6 +1,6 @@
-# Rules roadmap
+# Roadmap
 
-The rules provenance-guard has, the ones planned, and how to add a new one.
+Rules that exist, rules and improvements that are planned, and how to add a rule.
 
 ## Implemented
 
@@ -51,6 +51,35 @@ The rules provenance-guard has, the ones planned, and how to add a new one.
 ### Known gap
 
 A phished maintainer who injects code into an existing file, with no install script and no provenance to lose (chalk/debug, September 2025), is not caught by any rule above except `code-diff-suspicious`. A release-age gate is the practical defence until then.
+
+## Planned improvements (not rules)
+
+Found while building and reviewing 0.1.0. Each has an owner release so it isn't forgotten.
+
+### 0.2.0
+
+| Improvement                              | Why                                                                                                                                                                        | Design notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Effort  |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| **Disk cache between runs**              | Every run downloads each package's full registry data again (TypeScript's alone is several MB). Nightly `scan`s of big lockfiles are slow and load the registry            | Store each packument and its `ETag` in a cache folder (for example `.provenance-guard-cache/`, path configurable). On the next run, send `If-None-Match`; on `304 Not Modified`, use the stored copy. In CI, persist the folder with the CI's cache step (`actions/cache`, Azure `Cache@2`). **Security:** always revalidate with the registry rather than trusting a timer. A stale copy could hide a brand-new malicious release, so any time-based skip must be opt-in and short | ~2–3 h  |
+| **Skip private scopes** (`ignoreScopes`) | The tool asks the public registry about every package in the lockfile, so `registry.npmjs.org` sees internal package names (they come back as 404). That leaks information | Option such as `"ignoreScopes": ["@corp"]`. Matching packages are listed as "skipped (private scope)", not silently dropped                                                                                                                                                                                                                                                                                                                                                         | ~1 h    |
+| **`--timeout` CLI flag**                 | `timeoutMs` works in the config file and the API, but not as a flag                                                                                                        | Maps to `timeoutMs`. Add only if users ask                                                                                                                                                                                                                                                                                                                                                                                                                                          | ~15 min |
+
+### 0.3.0 or later
+
+| Improvement                             | Why                                                                                                                      | Effort |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------ |
+| **Allowlist for a whole group**         | Accepting one publish event (for example TypeScript and its 20 platform packages) currently needs one entry per package  | ~2 h   |
+| **Group one publisher across versions** | One maintainer publishing several packages at different versions (seen with Express dependencies) produces separate rows | ~2 h   |
+| **`onFinding` callback in the API**     | Lets tools stream findings (logs, chat) before the run ends                                                              | ~1 h   |
+| **CommonJS build**                      | Only needed for consumers on Node versions that can't `require()` ES modules (before 20.19 / 22.12)                      | ~2 h   |
+
+### Verification still owed
+
+These aren't features, but 0.1.0 claims depend on them:
+
+- [ ] Validate the SARIF output against the official SARIF 2.1.0 schema
+- [ ] Run the README's Azure DevOps pipeline in a real Azure project (Tests and Scans tabs)
+- [ ] Measure precision on 3–5 real repositories for 1–2 weeks before 0.2.0
 
 ## Release plan
 

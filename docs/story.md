@@ -235,7 +235,7 @@ if (result.exitCode === 1) {
 Things they came to rely on:
 
 - **It never passes silently.** No lockfile, a bad config, or the registry returning 401, 429 or 5xx gives exit code `2` with the reason, never a green tick.
-- **Behind the corporate proxy,** Node needed `NODE_OPTIONS=--use-system-ca`. It's one line in the pipeline.
+- **Behind the corporate proxy,** Node needed `NODE_OPTIONS=--use-system-ca`, and the proxy was slow enough that Rafa raised the registry timeout in the config: `"timeoutMs": 60000`. The default is 30 seconds. When a request does time out, the run stops with exit code `2` and names the URL. It never quietly skips the package.
 - **One runtime dependency and no install scripts.** A supply-chain tool with a long supply chain would be a punchline.
 
 ## Part 8: What it doesn't do

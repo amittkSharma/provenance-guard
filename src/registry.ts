@@ -30,12 +30,22 @@ export interface FetchJsonOptions {
 }
 
 /** `FetchJson` built on global `fetch`, with a concurrency limit and a timeout. */
+/** Throws for HTTP settings that can't work. Shared by `createFetchJson` and `check()` option validation. */
+export function validateFetchJsonOptions({ concurrency, timeoutMs }: FetchJsonOptions): void {
+  if (concurrency !== undefined && !(typeof concurrency === 'number' && concurrency >= 1)) {
+    throw new Error(`concurrency must be at least 1, got ${JSON.stringify(concurrency)}`);
+  }
+  if (timeoutMs !== undefined && !(typeof timeoutMs === 'number' && timeoutMs > 0)) {
+    throw new Error(`timeoutMs must be a positive number of milliseconds, got ${JSON.stringify(timeoutMs)}`);
+  }
+}
+
 export function createFetchJson({
   concurrency = 8,
   headers = {},
   timeoutMs = 30_000,
 }: FetchJsonOptions = {}): FetchJson {
-  if (!(concurrency >= 1)) throw new Error(`concurrency must be at least 1, got ${concurrency}`);
+  validateFetchJsonOptions({ concurrency, timeoutMs });
   const limit = createLimiter(concurrency);
   return (url) =>
     limit(async () => {

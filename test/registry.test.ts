@@ -226,3 +226,25 @@ test('createLimiter never exceeds its limit, whatever microtask a new caller arr
 test('history includes the current maintainer accounts', async () => {
   assert.deepEqual((await history('native-addon')).maintainers, ['alice', 'bob']);
 });
+
+test('createFetchJson rejects a timeout that is not a positive number', () => {
+  for (const timeoutMs of [0, -1, Number.NaN, '5000' as unknown as number]) {
+    assert.throws(() => createFetchJson({ timeoutMs }), /timeoutMs must be a positive number of milliseconds/);
+  }
+});
+
+test('createFetchJson aborts a request that takes longer than timeoutMs', async () => {
+  const server = createServer((_req, res) => setTimeout(() => res.end('{}'), 500));
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/slow`;
+  try {
+    await assert.rejects(createFetchJson({ timeoutMs: 50 })(url), (e: unknown) => {
+      assert.ok(e instanceof RegistryError);
+      assert.match(e.message, /timeout/i);
+      return true;
+    });
+  } finally {
+    server.closeAllConnections();
+    server.close();
+  }
+});

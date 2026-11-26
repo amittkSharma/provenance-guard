@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -668,4 +670,31 @@ test('oldReleaseDays below 7 is rejected, so a config change cannot switch the a
     assert.equal(r.exitCode, 2);
     assert.match(r.stderr, /oldReleaseDays must be a number of days \(7 or more\)/);
   }
+});
+
+test('timeoutMs from the config file reaches the registry client', async () => {
+  const server = createServer((_req, res) => setTimeout(() => res.end('{}'), 500));
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const registry = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  try {
+    const cwd = repo({}, { 'safe-lib': '2.0.1' }, { timeoutMs: 50, registry });
+    const r = await run(['scan'], { cwd, env: {} }); // real HTTP client, no injected fetchJson
+    assert.equal(r.exitCode, 2);
+    assert.match(r.stderr, /127\.0\.0\.1.*timeout/i);
+  } finally {
+    server.closeAllConnections();
+    server.close();
+  }
+});
+
+test('invalid timeoutMs in config → exit 2 before any lockfile work', async () => {
+  const r = await cli(['scan'], repo({}, {}, { timeoutMs: '5000' }));
+  assert.equal(r.exitCode, 2);
+  assert.match(r.stderr, /timeoutMs must be a positive number of milliseconds/);
+});
+
+test('invalid concurrency in config → exit 2, even when a custom HTTP layer is used', async () => {
+  const r = await cli(['scan'], repo({}, {}, { concurrency: 0 }));
+  assert.equal(r.exitCode, 2);
+  assert.match(r.stderr, /concurrency must be at least 1/);
 });

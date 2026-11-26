@@ -13,7 +13,7 @@ First public release.
 - **npm, pnpm (lockfile v6 and v9), Yarn v1 and Yarn Berry**, including monorepos: findings name the workspaces that use the package, and `--recursive` checks every lockfile
 - **Six report formats** from one check: text, JSON, Markdown, SARIF (GitHub code scanning, Azure DevOps Scans tab), JUnit (Azure DevOps Tests tab) and standalone HTML
 - **Low noise without hiding anything:** findings from one publish event are grouped, low-risk findings are rated `info` only on positive evidence, every finding carries its evidence, and allowlisted findings stay visible with their reason
-- **Configurable:** `.provenance-guard.json` or the `check()` API, with severity overrides, an allowlist that requires reasons, registry and auth headers, and a custom HTTP layer
+- **Configurable:** `.provenance-guard.json` or the `check()` API, with severity overrides, an allowlist that requires reasons, registry and auth headers, request timeout and concurrency, and a custom HTTP layer
 - **Small supply chain:** one runtime dependency, no install scripts, published with npm provenance
 
 ### Features

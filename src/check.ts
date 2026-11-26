@@ -32,10 +32,11 @@ export interface CheckResult {
  */
 export async function check(options: CheckOptions = {}): Promise<CheckResult> {
   validateOptions(options);
-  const { lockfiles, targets, workspaces, warnings, notes } = collect(options.cwd ?? process.cwd(), options);
-
+  // Built before any lockfile work so invalid HTTP settings fail fast.
   const fetchJson =
-    options.fetchJson ?? createFetchJson({ concurrency: options.concurrency, headers: options.headers });
+    options.fetchJson ??
+    createFetchJson({ concurrency: options.concurrency, headers: options.headers, timeoutMs: options.timeoutMs });
+  const { lockfiles, targets, workspaces, warnings, notes } = collect(options.cwd ?? process.cwd(), options);
   const registry = createRegistry(fetchJson, options.registry ?? process.env.npm_config_registry ?? DEFAULT_REGISTRY);
   const evaluateOptions = { now: new Date(), oldReleaseDays: options.oldReleaseDays };
 
