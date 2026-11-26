@@ -246,14 +246,6 @@ Also turn on your package manager's release-age gate (npm `min-release-age`, pnp
 | `HTTP 401` / `HTTP 403`                  | `npx` picked up your private registry. Add `--registry https://registry.npmjs.org`                               |
 | A private package is "unverified"        | Expected: it isn't on the public registry                                                                        |
 
-## Learn more
-
-- [A story: the lockfile that never lies](https://github.com/amittkSharma/provenance-guard/blob/main/docs/story.md): a walkthrough of a team adopting it, including a fire drill
-- [How it works](https://github.com/amittkSharma/provenance-guard/blob/main/docs/how-it-works.md): severity rules, grouping, monorepos, report formats, limits
-- [Rules roadmap](https://github.com/amittkSharma/provenance-guard/blob/main/docs/rules-roadmap.md): planned rules and how to add one
-- [Background](https://github.com/amittkSharma/provenance-guard/blob/main/docs/background.md): the attacks this targets and what other tools miss
-- [Architecture](https://github.com/amittkSharma/provenance-guard/blob/main/docs/architecture.md): code structure, for contributors
-
 ## Contributing
 
 ```bash
