@@ -11,7 +11,7 @@ provenance-guard compares every dependency update with **the package's own histo
 - **Low noise:** related findings are grouped, low-risk ones are explained instead of failing the build, and nothing is hidden
 - **Small and safe to run:** one runtime dependency, no install scripts, reads only public registry data
 
-![Terminal output](docs/images/terminal.png)
+![Terminal output](https://raw.githubusercontent.com/amittkSharma/provenance-guard/main/docs/images/terminal.png)
 
 ---
 
@@ -40,7 +40,7 @@ npx @amittksharma/provenance-guard scan
 | `install-script-added` | A release adds a `preinstall` / `install` / `postinstall` script the previous one didn't have      | ⚠️ warning |
 | `publisher-changed`    | A release was published by hand from a different npm account                                       | ⚠️ warning |
 
-Findings that are true but low-risk, such as an old maintenance release or a maintainer's own historical gap, are reported as **ℹ️ info** with the reason, and never fail CI. Findings from one publish event (for example a framework and its 20 platform packages) show as **one row**. Details: [How it works](docs/how-it-works.md).
+Findings that are true but low-risk, such as an old maintenance release or a maintainer's own historical gap, are reported as **ℹ️ info** with the reason, and never fail CI. Findings from one publish event (for example a framework and its 20 platform packages) show as **one row**. Details: [How it works](https://github.com/amittkSharma/provenance-guard/blob/main/docs/how-it-works.md).
 
 ## Add it to CI
 
@@ -111,18 +111,18 @@ npx @amittksharma/provenance-guard diff --base origin/main --output html=provena
 
 `--format <name>` chooses what is printed to the terminal. `--output <name>=<file>` writes a report file, and you can repeat it. All reports come from one check, so extra formats don't make extra registry requests.
 
-| Format     | Best for                                                                                                   |
-| ---------- | ---------------------------------------------------------------------------------------------------------- |
-| `text`     | Terminals (default)                                                                                        |
-| `markdown` | PR comments and CI step summaries                                                                          |
-| `html`     | Sharing with people outside CI. One self-contained file ([example](docs/examples/report.html))             |
-| `sarif`    | GitHub code scanning, the Azure DevOps Scans tab, any SARIF viewer ([example](docs/examples/report.sarif)) |
-| `junit`    | The Azure DevOps Tests tab, Jenkins, GitLab                                                                |
-| `json`     | Scripts and dashboards                                                                                     |
+| Format     | Best for                                                                                                                                                              |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `text`     | Terminals (default)                                                                                                                                                   |
+| `markdown` | PR comments and CI step summaries                                                                                                                                     |
+| `html`     | Sharing with people outside CI. One self-contained file ([example](https://github.com/amittkSharma/provenance-guard/blob/main/docs/examples/report.html))             |
+| `sarif`    | GitHub code scanning, the Azure DevOps Scans tab, any SARIF viewer ([example](https://github.com/amittkSharma/provenance-guard/blob/main/docs/examples/report.sarif)) |
+| `junit`    | The Azure DevOps Tests tab, Jenkins, GitLab                                                                                                                           |
+| `json`     | Scripts and dashboards                                                                                                                                                |
 
 ### HTML report
 
-![HTML report: status, summary cards and findings with evidence](docs/images/html-report.png)
+![HTML report: status, summary cards and findings with evidence](https://raw.githubusercontent.com/amittkSharma/provenance-guard/main/docs/images/html-report.png)
 
 Each finding shows the package, the rule, which workspaces use it, the evidence (publisher, maintainer status, release age, previous version) and where it sits in the lockfile. Info and allowed findings are collapsed below, each with its reason.
 
@@ -248,11 +248,11 @@ Also turn on your package manager's release-age gate (npm `min-release-age`, pnp
 
 ## Learn more
 
-- [A story: the lockfile that never lies](docs/story.md): a walkthrough of a team adopting it, including a fire drill
-- [How it works](docs/how-it-works.md): severity rules, grouping, monorepos, report formats, limits
-- [Rules roadmap](docs/rules-roadmap.md): planned rules and how to add one
-- [Background](docs/background.md): the attacks this targets and what other tools miss
-- [Architecture](docs/architecture.md): code structure, for contributors
+- [A story: the lockfile that never lies](https://github.com/amittkSharma/provenance-guard/blob/main/docs/story.md): a walkthrough of a team adopting it, including a fire drill
+- [How it works](https://github.com/amittkSharma/provenance-guard/blob/main/docs/how-it-works.md): severity rules, grouping, monorepos, report formats, limits
+- [Rules roadmap](https://github.com/amittkSharma/provenance-guard/blob/main/docs/rules-roadmap.md): planned rules and how to add one
+- [Background](https://github.com/amittkSharma/provenance-guard/blob/main/docs/background.md): the attacks this targets and what other tools miss
+- [Architecture](https://github.com/amittkSharma/provenance-guard/blob/main/docs/architecture.md): code structure, for contributors
 
 ## Contributing
 
